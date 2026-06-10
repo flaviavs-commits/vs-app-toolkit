@@ -1,0 +1,30 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Usuário base do ecossistema VS. Os campos de auth/membership são padrão e o
+// módulo de auth depende deles. Adicione abaixo os campos e relations do seu app.
+model User {
+  id    String @id @default(cuid())
+  email String @unique
+  nome  String @default("")
+
+  // Membership — espelho do status vindo do VS (is_member_active / member_until).
+  // FONTE DE VERDADE é o VS (admin / painel manual / Betalabs); aqui é só cache.
+  isMember    Boolean   @default(false) @map("is_member")
+  memberUntil DateTime? @map("member_until")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  // ── Campos e relations do {{APP_NAME}} entram aqui ──────────────────────────
+  // Ex.: hasOnboarded Boolean @default(false) @map("has_onboarded")
+  // Ex.: items        Item[]
+
+  @@map("users")
+}

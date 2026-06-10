@@ -1,0 +1,33 @@
+# Dependências
+node_modules
+backend/node_modules
+
+# Build
+dist
+backend/dist
+
+# Env (segredos — nunca versionar)
+.env
+.env.local
+*.local
+backend/.env
+
+# Prisma
+backend/prisma/*.db
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+
+# Python (start_app.py)
+__pycache__/
+*.pyc
+
+# Vercel
+.vercel
+
+# Logs
+*.log
+npm-debug.log*

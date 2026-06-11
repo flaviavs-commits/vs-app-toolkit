@@ -1,4 +1,4 @@
-import jwt from 'jsonwebtoken'
+import jwt, { type SignOptions } from 'jsonwebtoken'
 import type { Request, Response } from 'express'
 import prisma from '../lib/prisma.js'
 
@@ -35,9 +35,10 @@ export function serializeUser(user: {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function signToken(userId: string, email: string): string {
-  return jwt.sign({ userId, email }, process.env.JWT_SECRET as string, {
-    expiresIn: process.env.JWT_EXPIRES_IN || '7d',
-  })
+  const options: SignOptions = {
+    expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
+  }
+  return jwt.sign({ userId, email }, process.env.JWT_SECRET as string, options)
 }
 
 // Extrai nome, status de membership e o access token do VS da resposta do login.

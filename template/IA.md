@@ -40,7 +40,33 @@ misturar lógica de negócio nesses arquivos.
 
 ---
 
-## 🧪 TESTES / 🐛 BUGS / 🔗 INTEGRAÇÕES / 📝 NOTAS
+## 🧪 TESTES
+
+[gerado] **Automatizados (auth/authorization — obrigatórios por padrão):** Vitest no backend cobre
+o que o Design System marca como crítico. Rode com `cd backend && npm test`.
+
+- `requireAuth`: sem header → 401; esquema não-Bearer → 401; token inválido → 401 "Token inválido";
+  token expirado → 401 "Sessão expirada"; token válido popula `req.user` e chama `next()`.
+- `requireMember`: membro → libera; não-membro → 403 `NOT_MEMBER`; usuário inexistente → 404;
+  falha de banco → 500 sem vazar detalhe.
+- `login` / `google` / `me`: validação de entrada (400), proxy ao VS (200/401/403→502/502 offline),
+  normalização de email para minúsculas, JWT próprio emitido e `serializeUser` sem campos sensíveis.
+
+Arquivos: [`backend/src/auth/__tests__/`](backend/src/auth/__tests__/). Prisma e `fetch` são mockados —
+os testes não exigem Postgres nem o VS no ar.
+
+[gerado] **Verificação manual (smoke do fluxo real, quando mexer em auth/integração):**
+
+1. `python start_app.py` → app abre em `http://127.0.0.1:5173`.
+2. Login email+senha de um **membro ativo** → entra no app (sem `MembershipGate`).
+3. Login de um usuário **não-membro** → cai na tela de acesso restrito (403 do `requireMember`).
+4. Recarregar a página logado → sessão restaurada via `/api/auth/me` (sem loop de logout).
+5. Chamar uma rota gateada sem token (`curl` direto) → 401; com token de não-membro → 403.
+6. `logout` → token removido do `localStorage` e volta para a tela de login.
+
+---
+
+## 🐛 BUGS / 🔗 INTEGRAÇÕES / 📝 NOTAS
 
 _Preencher conforme o projeto avança._
 

@@ -32,9 +32,10 @@ rotas de `backend/src/server.ts` (backend, protegidas por `requireMember`).
 │   ├── AppContent.tsx   # ← seu app começa aqui (só membros chegam)
 │   └── App.tsx          # AuthProvider + gate de membership
 ├── backend/
-│   ├── src/auth/        # 🔐 auth VS no backend (login/google/me + guards)
-│   ├── src/server.ts    # rotas — adicione as suas com requireMember
-│   └── prisma/          # User base; adicione seus models
+│   ├── src/auth/             # 🔐 auth VS no backend (login/google/me + guards)
+│   │   └── __tests__/        # ✅ testes de auth/membership (Vitest)
+│   ├── src/server.ts         # rotas — adicione as suas com requireMember
+│   └── prisma/               # User base; adicione seus models
 ├── start_app.py         # ▶ sobe backend + frontend com um comando
 └── .env.example
 ```
@@ -52,6 +53,17 @@ Instala dependências (backend + frontend), sobe os dois e abre o navegador.
 
 > Antes do primeiro login: copie `backend/.env.example` → `backend/.env` e `.env.example` →
 > `.env.local`, e preencha as variáveis (ver `PLUGAR-LOGIN-VS.md` no toolkit).
+
+## 🧪 Testes
+
+O fluxo de auth/membership (o que mais quebra silenciosamente) já vem coberto:
+
+```bash
+cd backend && npm test     # Vitest — não precisa de Postgres nem do VS no ar
+```
+
+Cobre `requireAuth`, `requireMember` e os handlers `login`/`google`/`me`. Ao adicionar regras de
+negócio críticas, escreva o teste junto (ver roteiro de verificação manual em `IA.md`).
 
 ## 🔐 Login VS
 

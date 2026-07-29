@@ -22,6 +22,11 @@ de membership no frontend **e** no backend.
 
 A base de auth foi extraída do app `financeiro` (validada em produção) e convertida para TypeScript.
 
+> ⚠️ **A arquitetura de identidade da Vitis Souls está em transição.** Em 29/07/2026 ficou decidido
+> que o **Meu Ecoo** passa a ser o banco principal de usuários do ecossistema, no lugar do Descontos
+> VIP. O gerador continua apontando para o VS de propósito — o Meu Ecoo ainda não valida credencial.
+> Leia [`docs/ARQUITETURA-IDENTIDADE.md`](docs/ARQUITETURA-IDENTIDADE.md) **antes de gerar um app novo**.
+
 ## 📁 Estrutura
 
 ```
@@ -32,7 +37,8 @@ vs-app-toolkit/
 │   ├── backend/src/auth/# 🔐 módulo de auth backend (copiável)
 │   └── ...              # configs, start_app.py, docs com placeholders
 └── docs/
-    └── PLUGAR-LOGIN-VS.md  # como adicionar auth a um app existente
+    ├── ARQUITETURA-IDENTIDADE.md  # onde mora o login, hoje e para onde vai
+    └── PLUGAR-LOGIN-VS.md         # como adicionar auth a um app existente
 ```
 
 ## 🚀 Como Usar

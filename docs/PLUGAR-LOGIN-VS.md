@@ -4,6 +4,11 @@ Guia para adicionar o **login do Descontos VIP + gate de membership** a um app �
 seja um app **novo** (gerado pelo `create-vs-app.py`) ou um app **existente**
 (ex.: Área Saúde Mental, quando chegar a fase de membros).
 
+> ⚠️ **Transição em curso.** O provedor de identidade do ecossistema está migrando do Descontos VIP
+> para o **Meu Ecoo** (decisão de 29/07/2026). Este guia descreve o estado **atual**, que continua
+> válido — mas leia [`ARQUITETURA-IDENTIDADE.md`](ARQUITETURA-IDENTIDADE.md) para entender o estado
+> alvo e o que muda quando a migração concluir (resposta curta: só o valor de `PARTNER_AUTH_URL`).
+
 ---
 
 ## Como funciona (visão geral)

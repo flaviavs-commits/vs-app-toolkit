@@ -1,0 +1,16 @@
+name: Public repository guard
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  guard:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Detect sensitive files and credential assignments
+        run: python3 scripts/public_repo_guard.py

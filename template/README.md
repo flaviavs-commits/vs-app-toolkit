@@ -40,6 +40,19 @@ rotas de `backend/src/server.ts` (backend, protegidas por `requireMember`).
 └── .env.example
 ```
 
+## 🛡️ Proteção para repositório público
+
+Antes do primeiro commit, ative o hook versionado:
+
+```bash
+./scripts/install-public-repo-guard.sh
+```
+
+Ele recusa `.env`, exportações CSV, bancos, backups, documentos sensíveis e
+possíveis atribuições de credenciais. O mesmo detector roda no GitHub Actions
+para identificar qualquer bypass. Arquivos legítimos que precisem de exceção
+devem receber uma allowlist revisada; não desative a proteção globalmente.
+
 ## 🚀 Como Usar
 
 ```bash

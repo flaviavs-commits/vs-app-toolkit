@@ -82,6 +82,7 @@ def copy_template(dest: Path, mapping: dict) -> None:
             try:
                 content = src.read_text(encoding="utf-8")
                 target.write_text(substitute(content, mapping), encoding="utf-8")
+                target.chmod(src.stat().st_mode)
                 continue
             except UnicodeDecodeError:
                 pass

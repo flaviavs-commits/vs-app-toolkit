@@ -54,6 +54,11 @@ python create-vs-app.py --name "Cursos VIP" --slug cursos-vip --port 3002 --dest
 O gerador copia o template, substitui os placeholders (`{{APP_NAME}}`, `{{APP_SLUG}}`,
 `{{BACKEND_PORT}}`) e imprime o **checklist de provisionamento** (Railway + Vercel + Firebase).
 
+O projeto gerado inclui uma proteção versionada para repositórios públicos.
+Após gerá-lo, rode `./scripts/install-public-repo-guard.sh`: o hook bloqueia
+arquivos de ambiente, exportações CSV, backups e possíveis valores de
+credenciais; o GitHub Actions executa a mesma verificação contra bypass.
+
 Depois:
 
 ```bash

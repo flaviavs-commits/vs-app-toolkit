@@ -5,7 +5,7 @@
 ![Python](https://img.shields.io/badge/Python-3-3776AB?style=for-the-badge&logo=python&logoColor=white)
 ![React](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react&logoColor=white)
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![License](https://img.shields.io/badge/Licen%C3%A7a-Propriet%C3%A1ria-lightgrey?style=for-the-badge)
 
 **Gerador de apps satélite do ecossistema VS — cada app já nasce com login do Descontos VIP e acesso restrito a membros ativos.**
 
@@ -78,7 +78,8 @@ auth a um app que já existe (ex.: quando ele chega na fase de área de membros)
 
 ## 📝 Licença
 
-MIT — veja [template/LICENSE](template/LICENSE).
+Software proprietario da Vitis Souls — todos os direitos reservados. Veja [LICENSE](LICENSE).
+O codigo gerado a partir de `template/` segue o mesmo regime ([template/LICENSE](template/LICENSE)).
 
 ## 👤 Autor
 

@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
 ![Vite](https://img.shields.io/badge/Vite-6-646CFF?style=for-the-badge&logo=vite&logoColor=white)
 ![Node](https://img.shields.io/badge/Node-20-339933?style=for-the-badge&logo=node.js&logoColor=white)
-![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)
+![License](https://img.shields.io/badge/Licen%C3%A7a-Propriet%C3%A1ria-lightgrey?style=for-the-badge)
 
 **{{APP_NAME}} — app do ecossistema VS, com login do Descontos VIP e acesso restrito a membros ativos.**
 
@@ -74,7 +74,7 @@ negócio críticas, escreva o teste junto (ver roteiro de verificação manual e
 
 ## 📝 Licença
 
-MIT — veja [LICENSE](LICENSE).
+Software proprietario da Vitis Souls — todos os direitos reservados. Veja [LICENSE](LICENSE).
 
 ## 👤 Autor
 

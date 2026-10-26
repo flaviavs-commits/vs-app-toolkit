@@ -2,14 +2,16 @@ import 'dotenv/config'
 import express from 'express'
 import cors from 'cors'
 import authRoutes, { requireAuth, requireMember } from './auth/authRoutes.js'
+import { corsOrigin } from './lib/corsOrigin.js'
 
 const app = express()
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
-// Em produção, permite apenas o domínio exato do frontend (Vercel).
+// Em produção, permite apenas o domínio exato do frontend (Vercel); sem
+// FRONTEND_URL o boot falha (ver lib/corsOrigin.ts).
 app.use(
   cors({
-    origin: process.env.NODE_ENV === 'production' ? process.env.FRONTEND_URL : '*',
+    origin: corsOrigin(),
     credentials: true,
   }),
 )

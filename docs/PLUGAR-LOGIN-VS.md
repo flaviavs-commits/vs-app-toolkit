@@ -75,7 +75,7 @@ Já vem tudo pronto. Só falta provisionar a infra e preencher as variáveis —
 | `JWT_SECRET` | segredo forte (`node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`) |
 | `JWT_EXPIRES_IN` | `7d` |
 | `NODE_ENV` | `production` |
-| `FRONTEND_URL` | URL exata da Vercel (sem barra final) |
+| `FRONTEND_URL` | URL exata da Vercel (sem barra final); obrigatória com `NODE_ENV=production` — sem ela o backend recusa subir |
 | `PARTNER_AUTH_SERVICE_TOKEN` | token de serviço do VS (igual ao do VS) |
 | `PARTNER_AUTH_URL` | `https://vs-production-c4dd.up.railway.app/api/partner/auth/login/` |
 | `PARTNER_AUTH_GOOGLE_URL` | `https://vs-production-c4dd.up.railway.app/api/auth/firebase/google/` |

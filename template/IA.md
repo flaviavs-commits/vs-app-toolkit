@@ -29,6 +29,8 @@ gateada) para evitar loop de logout com não-membros.
 [gerado] **Gate de membership em 2 camadas**: frontend (`MembershipGate`) + backend
 (`requireMember`, 403). A **fonte de verdade é o VS** (admin / painel manual / Betalabs) — o app só
 espelha o `is_member` que o VS devolve; não impõe regra do Betalabs.
+[gerado] **CORS**: com `NODE_ENV=production` só aceita a origem `FRONTEND_URL`, e o backend **recusa
+subir** se ela faltar (`backend/src/lib/corsOrigin.ts`); fora de produção libera `*` (dev local).
 
 ---
 
@@ -51,8 +53,11 @@ o que o Design System marca como crítico. Rode com `cd backend && npm test`.
   falha de banco → 500 sem vazar detalhe.
 - `login` / `google` / `me`: validação de entrada (400), proxy ao VS (200/401/403→502/502 offline),
   normalização de email para minúsculas, JWT próprio emitido e `serializeUser` sem campos sensíveis.
+- `corsOrigin`: fora de produção → `*`; em produção → `FRONTEND_URL`; em produção com `FRONTEND_URL`
+  ausente, vazia ou só espaços → erro (o backend não sobe).
 
-Arquivos: [`backend/src/auth/__tests__/`](backend/src/auth/__tests__/). Prisma e `fetch` são mockados —
+Arquivos: [`backend/src/auth/__tests__/`](backend/src/auth/__tests__/) e
+[`backend/src/lib/__tests__/`](backend/src/lib/__tests__/). Prisma e `fetch` são mockados —
 os testes não exigem Postgres nem o VS no ar.
 
 [gerado] **Verificação manual (smoke do fluxo real, quando mexer em auth/integração):**

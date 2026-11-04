@@ -6,7 +6,15 @@ import {
   type ReactNode,
 } from 'react'
 import * as api from './api'
-import { TOKEN_KEY, type AuthUser } from './api'
+import {
+  TOKEN_KEY,
+  aoRenovarSessao,
+  guardarSessao,
+  limparSessao,
+  sairDaSessao,
+  sessaoRecusada,
+  type AuthUser,
+} from './api'
 
 interface AuthContextValue {
   // Estado de sessão
@@ -34,6 +42,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const isLoggedIn = !!token && !!user
   const isMember = user?.isMember ?? false
 
+  // ── Renovação da sessão (api.ts): o usuário volta atualizado (assinatura, nome) ──
+  useEffect(() => aoRenovarSessao(setUser), [])
+
   // ── Bootstrap: restaura a sessão via /auth/me ───────────────────────────────
   // Usa /auth/me (liberado a qualquer logado) — assim um não-membro também
   // restaura a sessão e cai no MembershipGate, em vez de ser deslogado em loop.
@@ -45,9 +56,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     api
       .getMe()
       .then(({ data }) => setUser(data))
-      .catch(() => {
-        localStorage.removeItem(TOKEN_KEY)
-        setToken(null)
+      .catch((err: unknown) => {
+        // Só a conta sem acesso encerra aqui. O 401 o interceptor já tratou (renovou, ou
+        // encerrou e recarregou); rede caída e 5xx não derrubam a sessão guardada.
+        if (sessaoRecusada(err)) {
+          limparSessao()
+          setToken(null)
+        }
       })
       .finally(() => setIsBootstrapping(false))
   }, [token])
@@ -61,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setError(null)
     try {
       const { data } = await authRequest()
-      localStorage.setItem(TOKEN_KEY, data.token)
+      guardarSessao(data)
       setToken(data.token)
       setUser(data.user)
     } catch (err: any) {
@@ -107,7 +122,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   function logout() {
-    localStorage.removeItem(TOKEN_KEY)
+    sairDaSessao()
     setToken(null)
     setUser(null)
   }

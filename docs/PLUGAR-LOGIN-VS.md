@@ -17,9 +17,10 @@ seja um app **novo** (gerado pelo `create-vs-app.py`) ou um app **existente**
 Frontend (login email+senha ou Google via Firebase descontoss-vip)
   → POST /api/auth/login | /api/auth/google   [backend do app]
       → VS (vs-production-c4dd.up.railway.app)  valida + devolve membership
-      → backend emite JWT próprio + espelha isMember no Postgres
-  ← { token, user }
-Frontend: AuthProvider guarda o token; o gate libera o app só se isMember.
+      → backend emite JWT próprio (30 min) + refresh token + espelha isMember no Postgres
+  ← { token, refreshToken, user }
+Frontend: AuthProvider guarda o par de tokens; o gate libera o app só se isMember.
+          Com o JWT vencido, o front renova em POST /api/auth/refresh (ver "Sessão curta e renovação").
 ```
 
 A **fonte de verdade do membership é o VS** (admin / concessão manual no painel / assinatura ativa
@@ -37,9 +38,11 @@ Já vem tudo pronto. Só falta provisionar a infra e preencher as variáveis —
 ## App existente (adicionar a auth)
 
 1. **Criar o backend** (se ainda não tiver): copie a pasta `template/backend/` do toolkit para o
-   projeto. Ela traz `src/auth/` (módulo), `src/server.ts`, `prisma/schema.prisma` (User base).
+   projeto. Ela traz `src/auth/` (módulo), `src/lib/` (`clientIp.ts`), `src/server.ts` e
+   `prisma/schema.prisma` (User base + `SessaoDeRenovacao`). Num app que já tem schema, acrescente o
+   model `SessaoDeRenovacao` e a relation `sessoesDeRenovacao` do `User`; a migração é só uma tabela nova.
 2. **Copiar o módulo frontend**: copie `template/src/auth/` para o `src/` do seu app.
-   - Ajuste a chave do token em `src/auth/api.ts` (`TOKEN_KEY`) para um valor único do app.
+   - Ajuste as chaves do token em `src/auth/api.ts` (`TOKEN_KEY` e `REFRESH_KEY`) para valores únicos do app.
 3. **Envolver o app com o gate**: no seu `App.tsx`, importe `AuthProvider`, `useAuth`, `Gatekeeper`
    e `MembershipGate` e renderize o conteúdo só quando for membro:
    ```tsx
@@ -73,7 +76,8 @@ Já vem tudo pronto. Só falta provisionar a infra e preencher as variáveis —
 |---|---|
 | `DATABASE_URL` | reference do Postgres: `${{Postgres.DATABASE_URL}}` |
 | `JWT_SECRET` | segredo forte (`node -e "console.log(require('crypto').randomBytes(64).toString('hex'))"`) |
-| `JWT_EXPIRES_IN` | `7d` |
+| `JWT_EXPIRES_IN` | `30m` (padrão do módulo; um valor antigo como `7d` definido aqui vence o padrão e desfaz a sessão curta) |
+| `REFRESH_TOKEN_TTL_DAYS` | `7` (opcional; validade de cada refresh token, a família vale no máximo 30 dias) |
 | `NODE_ENV` | `production` |
 | `FRONTEND_URL` | URL exata da Vercel (sem barra final); obrigatória com `NODE_ENV=production` — sem ela o backend recusa subir |
 | `PARTNER_AUTH_SERVICE_TOKEN` | token de serviço do VS (igual ao do VS) |
@@ -96,6 +100,63 @@ Já vem tudo pronto. Só falta provisionar a infra e preencher as variáveis —
 
 No projeto **`descontoss-vip`** → Authentication → Settings → **Authorized domains** → adicionar o
 domínio do app (ex.: `meu-app.vercel.app`). Sem isso o popup do Google é bloqueado no navegador.
+
+---
+
+## Sessão curta e renovação
+
+O JWT de acesso dura **30 minutos**; quem mantém a pessoa logada é um **refresh token** opaco (32 bytes
+aleatórios) que **troca de valor a cada renovação**. O guia de segurança pede exatamente isso: expiração
+curta e refresh com rotação.
+
+**Backend** (`backend/src/auth/refreshTokens.ts` e `authController.ts`):
+
+- Tabela `sessoes_de_renovacao` (model `SessaoDeRenovacao`): só o **hash SHA-256** do token vai ao banco.
+  Cada token vale 7 dias (`REFRESH_TOKEN_TTL_DAYS`) e a **família** (a cadeia de rotações de um login) vale
+  no máximo **30 dias** desde o login que a abriu. Depois disso, a pessoa entra de novo.
+- Todo login (senha, Google) devolve `refreshToken` ao lado do `token`; o resto da resposta não muda.
+- `POST /api/auth/refresh` (público, corpo `{ refreshToken }`) responde `200 { token, refreshToken, user }`
+  ou um destes erros, sempre com `code`:
+
+  | Status | `code` | Quando |
+  |---|---|---|
+  | 401 | `SESSAO_INVALIDA` | token desconhecido, revogado, ou já usado (reuso: **revoga a família inteira**) |
+  | 401 | `SESSAO_EXPIRADA` | token ou família vencidos |
+  | 409 | `RENOVACAO_EM_ANDAMENTO` | token usado há menos de 10 s (duas abas renovando juntas); **não revoga** |
+  | 403 | — | conta desativada ou não verificada no provedor (revoga a família; mensagem constante do app) |
+  | 502 | — | provedor recusou o token de serviço do app (erro de configuração; não consome o refresh) |
+  | 503 | `RENOVACAO_INDISPONIVEL` | provedor fora do ar, lento ou sem a rota; **não consome nem revoga** |
+
+- Antes de consumir o refresh token, o app **reconsulta o Meu Ecoo**: `POST <origem de PARTNER_AUTH_URL>/api/partner/auth/renovar`
+  com o `X-Service-Token` do app e o corpo `{ "email": "..." }` (a URL deriva da de login, sem variável nova).
+  `200` traz `data.user` no mesmo formato do login (o espelho de assinatura e nome é atualizado); `403` com
+  `CONTA_DESATIVADA`/`CONTA_NAO_VERIFICADA` e `404` com `CONTA_NAO_ENCONTRADA` revogam a família. Perder a
+  assinatura **não** impede a renovação: o espelho vai a `isMember=false` e o `requireMember` decide. Um `404` sem
+  `code` é rota ausente e vira 503, nunca revogação.
+- `POST /api/auth/logout` (público, corpo `{ refreshToken }`) revoga a família e responde **sempre `204`**.
+- O consumo do token e a emissão do par novo ficam numa transação só; duas renovações simultâneas com o
+  mesmo token resultam em uma renovação e um 409.
+- **`X-Client-IP`**: nas chamadas ao Meu Ecoo de login por senha e de Google, o backend manda o IP real de
+  quem está entrando (`lib/clientIp.ts`: o `X-Real-IP` da borda do Railway; fora dele, o endereço da conexão),
+  e só se `net.isIP` validar. O Meu Ecoo só o aceita junto de um `X-Service-Token` válido (por isso o Google
+  também leva o token de serviço) e o usa no limite de tentativas por IP.
+
+**Frontend** (`src/auth/api.ts`):
+
+- O `refreshToken` fica no `localStorage` ao lado do token (`REFRESH_KEY`): o front (Vercel) e a API (Railway)
+  são sites diferentes, e cookie `httpOnly` de terceiros não é confiável nos navegadores.
+- Num `401` fora das rotas de login, de `/api/auth/refresh` e de `/api/auth/logout`, **com** refresh token
+  guardado, o interceptor faz **uma** renovação por vez (as requisições que falharam juntas dividem a mesma
+  promessa), grava o par novo e **repete a original uma vez**.
+- Renovação recusada (`401`/`403`) → limpa tudo e volta ao login (como era). Rede caída, `5xx` e `503` **não
+  derrubam a sessão**: devolvem o erro original. `409` → espera (até ~3 s) a outra aba gravar o par novo e
+  repete a renovação uma vez com ele; se o refresh não mudou, trata como expirada.
+- Sem refresh token guardado (sessão antiga), vale o comportamento anterior: `401` → sessão expirou.
+- Sair chama `/api/auth/logout` (melhor esforço) e limpa o armazenamento. O `AuthProvider` aplica o `user`
+  que a renovação devolve (assinatura e nome).
+
+**Publicação:** front primeiro, depois o backend — o front novo funciona sem refresh token guardado e sem a
+rota no backend. O backend cria a tabela no deploy (`prisma db push`, como o `railway.json` já faz).
 
 ---
 

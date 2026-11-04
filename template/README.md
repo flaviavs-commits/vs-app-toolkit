@@ -73,15 +73,21 @@ O fluxo de auth/membership (o que mais quebra silenciosamente) já vem coberto:
 
 ```bash
 cd backend && npm test     # Vitest — não precisa de Postgres nem do VS no ar
+npm test                   # Vitest do frontend (renovação da sessão em src/auth)
 ```
 
-Cobre `requireAuth`, `requireMember` e os handlers `login`/`google`/`me`. Ao adicionar regras de
+Cobre `requireAuth`, `requireMember`, os handlers `login`/`google`/`me`, a renovação da sessão
+(`refresh`/`logout`, rotação e detecção de reuso) e o interceptor do frontend. Ao adicionar regras de
 negócio críticas, escreva o teste junto (ver roteiro de verificação manual em `IA.md`).
 
 ## 🔐 Login VS
 
 - **Backend:** `/api/auth/login` (email+senha) e `/api/auth/google` (Firebase) fazem proxy para o
   VS, que valida e devolve o status de membership. O backend emite um JWT próprio.
+- **Sessão curta:** o JWT dura 30 minutos (`JWT_EXPIRES_IN`) e um refresh token rotativo (7 dias por
+  token, no máximo 30 dias desde o login; só o hash fica na tabela `sessoes_de_renovacao`) o renova em
+  `POST /api/auth/refresh`, que antes reconsulta o Meu Ecoo. `POST /api/auth/logout` revoga a sessão.
+  Os logins mandam o IP de quem entra ao Meu Ecoo (`X-Client-IP`). Contrato em `PLUGAR-LOGIN-VS.md` (toolkit).
 - **Gate:** o frontend mostra `MembershipGate` para não-membros; o backend bloqueia rotas com
   `requireMember` (403). A **fonte de verdade do membership é o VS** (admin / painel / Betalabs).
 

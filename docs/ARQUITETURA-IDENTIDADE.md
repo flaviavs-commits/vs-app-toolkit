@@ -65,6 +65,7 @@ O que **não** é barato, e por isso está fora do escopo do toolkit:
 - **Membership tem que ser verificada**, não só lida do login. O status devolvido no login pode estar desatualizado.
 - **Bootstrap por `/api/auth/me`**, nunca por rota gateada, senão um não-membro entra em loop de login/logout.
 - **Um token de serviço por app.** Hoje o `PARTNER_AUTH_SERVICE_TOKEN` é o mesmo valor em vários serviços; no Meu Ecoo cada app ganha o seu.
+- **Sessão curta, renovada pelo provedor.** O JWT do app dura 30 minutos e um refresh token rotativo (só o hash no banco do app) o renova por até 30 dias. A renovação **reconsulta o provedor** (`POST /api/partner/auth/renovar`, na mesma origem do login de parceiro, com o token de serviço do app), então conta desativada ou apagada no Meu Ecoo derruba a sessão do app em até 30 minutos, e a assinatura volta atualizada. Esta é uma rota do Meu Ecoo: contra o VS antigo, que não a tem, a renovação responde 503 e a pessoa volta ao login quando o JWT vencer. Os logins por senha e Google também mandam o IP de quem entra (`X-Client-IP`) para o limite de tentativas do provedor. Detalhes e códigos de erro em [`PLUGAR-LOGIN-VS.md`](PLUGAR-LOGIN-VS.md#sessão-curta-e-renovação).
 - **O projeto Firebase continua sendo o `descontoss-vip`.** O nome é só um identificador — migrar de projeto custa re-login de todos os usuários e mexe nos `VITE_FIREBASE_*` e nos domínios autorizados de cada app. Muda quem verifica o `id_token`, não o projeto.
 
 ---

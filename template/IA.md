@@ -60,6 +60,16 @@ Arquivos: [`backend/src/auth/__tests__/`](backend/src/auth/__tests__/) e
 [`backend/src/lib/__tests__/`](backend/src/lib/__tests__/). Prisma e `fetch` são mockados —
 os testes não exigem Postgres nem o VS no ar.
 
+[2026-11-04] **Sessão curta com renovação** (`backend/src/auth/__tests__/refresh.test.ts`, 41 casos, e
+`src/auth/renovacao.test.ts`, 27 casos; o do frontend roda com `npm test` na raiz). O backend usa uma
+tabela falsa em memória e o provedor como `fetch` simulado: JWT de 30 min, refresh de 32 bytes só em hash,
+7 dias por token e 30 dias por família, rotação em cadeia, reuso (revoga a família) e a janela de 10 s
+(409), vencido, revogado, conta desativada/não verificada/não encontrada, provedor fora do ar (503 sem
+consumir), 404 sem `code` (rota ausente, não revoga), corrida de duas renovações, logout e limpeza das
+linhas vencidas. `authController.test.ts` cobre o `X-Client-IP` e o `refreshToken` nos logins. O frontend
+cobre a renovação única compartilhada, a repetição uma vez só, recusa x indisponibilidade, o 409 com a
+outra aba, a sessão antiga sem refresh e as rotas de login fora da renovação.
+
 [gerado] **Verificação manual (smoke do fluxo real, quando mexer em auth/integração):**
 
 1. `python start_app.py` → app abre em `http://127.0.0.1:5173`.
@@ -83,6 +93,32 @@ _Preencher conforme o projeto avança._
 serviço recusado, ou provedor sem `code`) → 502 de configuração; 429 → "Muitas tentativas". Antes todo
 403 virava erro de configuração. Testes em `authController.test.ts`; os apps já gerados (Área Saúde
 Mental, Minha Motivação, Planejador) receberam a mesma mudança.
+
+[2026-11-04] **Sessão curta com renovação rotativa e `X-Client-IP`** (decisão do Notion "decidir sessão
+curta com renovação no lugar dos JWT de 7 dias", para os 5 repositórios; o guia de segurança pede
+expiração curta e refresh com rotação).
+
+- **Mudou:** `JWT_EXPIRES_IN` padrão `30m` (era `7d`). Tabela nova `sessoes_de_renovacao` (model
+  `SessaoDeRenovacao`, FK para `users` com `onDelete: Cascade`): só o hash SHA-256 do refresh token vai ao
+  banco; 7 dias por token (`REFRESH_TOKEN_TTL_DAYS`) e no máximo 30 dias por família (cadeia de rotações de
+  um login). Todo login devolve `refreshToken` ao lado do `token`. `POST /api/auth/refresh` rotaciona com
+  detecção de reuso e reconsulta o Meu Ecoo em `/api/partner/auth/renovar` antes de consumir; `POST
+  /api/auth/logout` revoga a família e responde sempre 204. O login por senha e o Google mandam
+  `X-Client-IP` (`backend/src/lib/clientIp.ts`, só se `net.isIP` validar), e o Google passou a levar o
+  `X-Service-Token` (o Meu Ecoo só aceita o IP junto do token). Frontend: `REFRESH_KEY`
+  (`{{APP_SLUG}}_refresh`) no `localStorage`; o `api.ts` renova uma vez por vez num 401 fora das rotas de
+  login, repete a requisição uma vez, não derruba a sessão com rede caída/5xx/503 e deixa as rotas de
+  login fora do interceptor (a senha errada não recarrega mais a página). Contrato completo em
+  `docs/PLUGAR-LOGIN-VS.md` do toolkit ("Sessão curta e renovação").
+- **Por que o IA.md importa aqui:** o app gerado herda tudo isso. `JWT_EXPIRES_IN=7d` definido no Railway
+  vence o padrão novo; remova-o ou ajuste. A renovação depende da rota do Meu Ecoo: sem ela o app responde
+  503 e a pessoa volta ao login quando o JWT de 30 min vencer.
+- **Limites:** sem arquivo de migração versionado, porque o template nunca teve `prisma/migrations` e o
+  `railway.json` usa `prisma db push` (a tabela nasce no deploy). O template não tem limite de tentativas
+  próprio nem o login único (`?meuecoo_codigo=`); só o `clientIp.ts` veio, para o `X-Client-IP`. Quem tiver
+  um limitador no app deve chaveá-lo pelo mesmo `clientIp`.
+- **Como validar:** `cd backend && npm test` (79 casos; eram 29) e `npm test` na raiz (27 casos do
+  frontend, novos); no app gerado, lint e build do frontend e `tsc` do backend.
 
 ---
 

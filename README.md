@@ -76,6 +76,10 @@ auth a um app que já existe (ex.: quando ele chega na fase de área de membros)
 - **Backend** (`backend/src/auth/`): `/api/auth/login` (email+senha via VS), `/api/auth/google`
   (Firebase via VS), `/api/auth/me` (restaura sessão), middlewares `requireAuth` e `requireMember`.
   Emite JWT próprio e espelha `isMember`/`memberUntil` no Postgres.
+- **Sessão curta** (backend e front): o JWT de acesso dura 30 minutos e um **refresh token rotativo**
+  (`/api/auth/refresh`, `/api/auth/logout`; só o hash fica no Postgres, tabela `sessoes_de_renovacao`)
+  mantém a pessoa logada por até 30 dias. A renovação reconsulta o Meu Ecoo antes de consumir o token.
+  Detalhes em [`docs/PLUGAR-LOGIN-VS.md`](docs/PLUGAR-LOGIN-VS.md#sessão-curta-e-renovação).
 - **Frontend** (`src/auth/`): `AuthProvider`/`useAuth`, `Gatekeeper` (login), `MembershipGate`
   (acesso restrito). Bootstrap via `/api/auth/me` (sem loop de logout).
 - **Regra:** a **fonte de verdade do membership é o VS** (admin / painel manual / Betalabs). O app

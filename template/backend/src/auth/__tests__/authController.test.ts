@@ -70,7 +70,50 @@ describe('login (POST /api/auth/login)', () => {
     expect(payload.user).not.toHaveProperty('accessToken')
   })
 
-  it('mapeia 403 do VS (token de serviço inválido) para 502 sem vazar a causa', async () => {
+  it('mostra "conta desativada" (403) quando o provedor diz CONTA_DESATIVADA, em vez de erro de configuração', async () => {
+    global.fetch = mockFetchOnce(false, 403, { error: 'texto do provedor', code: 'CONTA_DESATIVADA' }) as unknown as typeof fetch
+    const res = mockRes()
+    await login({ body: { email: 'a@b.com', password: 'x' } } as Request, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Conta desativada. Fale com o suporte.' })
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('pede a confirmação do e-mail (403) quando o provedor diz CONTA_NAO_VERIFICADA', async () => {
+    global.fetch = mockFetchOnce(false, 403, { code: 'CONTA_NAO_VERIFICADA' }) as unknown as typeof fetch
+    const res = mockRes()
+    await login({ body: { email: 'a@b.com', password: 'x' } } as Request, res)
+
+    expect(res.status).toHaveBeenCalledWith(403)
+    expect(res.json).toHaveBeenCalledWith({ error: expect.stringMatching(/Confirme seu e-mail/) })
+  })
+
+  it('403 SERVICO_NAO_AUTORIZADO ou com code desconhecido segue como erro de configuração (502)', async () => {
+    for (const corpo of [{ code: 'SERVICO_NAO_AUTORIZADO' }, { code: 'OUTRA_COISA' }]) {
+      global.fetch = mockFetchOnce(false, 403, corpo) as unknown as typeof fetch
+      const res = mockRes()
+      await login({ body: { email: 'a@b.com', password: 'x' } } as Request, res)
+      expect(res.status).toHaveBeenCalledWith(502)
+      expect(res.json).toHaveBeenCalledWith({ error: 'Erro de configuração do serviço. Contate o suporte.' })
+    }
+  })
+
+  it('mostra "muitas tentativas" no 429 do provedor e a mensagem de `error` no 401', async () => {
+    global.fetch = mockFetchOnce(false, 429, { error: 'Muitas tentativas.' }) as unknown as typeof fetch
+    const limite = mockRes()
+    await login({ body: { email: 'a@b.com', password: 'x' } } as Request, limite)
+    expect(limite.status).toHaveBeenCalledWith(429)
+    expect(limite.json).toHaveBeenCalledWith({ error: 'Muitas tentativas. Aguarde alguns minutos.' })
+
+    global.fetch = mockFetchOnce(false, 401, { error: 'Credenciais inválidas.' }) as unknown as typeof fetch
+    const recusada = mockRes()
+    await login({ body: { email: 'a@b.com', password: 'x' } } as Request, recusada)
+    expect(recusada.status).toHaveBeenCalledWith(401)
+    expect(recusada.json).toHaveBeenCalledWith({ error: 'Credenciais inválidas.' })
+  })
+
+  it('mapeia 403 do VS (token de serviço inválido, sem code) para 502 sem vazar a causa', async () => {
     global.fetch = mockFetchOnce(false, 403, { detail: 'service token invalid' }) as unknown as typeof fetch
     const res = mockRes()
     await login({ body: { email: 'a@b.com', password: 'x' } } as Request, res)
@@ -102,6 +145,19 @@ describe('login (POST /api/auth/login)', () => {
 })
 
 describe('loginGoogle (POST /api/auth/google)', () => {
+  it('conta desativada no provedor: 403 com a mensagem da conta, e 429 vira "muitas tentativas"', async () => {
+    global.fetch = mockFetchOnce(false, 403, { code: 'CONTA_DESATIVADA' }) as unknown as typeof fetch
+    const desativada = mockRes()
+    await loginGoogle({ body: { idToken: 'tok' } } as Request, desativada)
+    expect(desativada.status).toHaveBeenCalledWith(403)
+    expect(desativada.json).toHaveBeenCalledWith({ error: 'Conta desativada. Fale com o suporte.' })
+
+    global.fetch = mockFetchOnce(false, 429, { error: 'x' }) as unknown as typeof fetch
+    const limite = mockRes()
+    await loginGoogle({ body: { idToken: 'tok' } } as Request, limite)
+    expect(limite.status).toHaveBeenCalledWith(429)
+  })
+
   it('valida entrada: 400 quando falta idToken', async () => {
     const res = mockRes()
     await loginGoogle({ body: {} } as Request, res)

@@ -78,6 +78,12 @@ _Preencher conforme o projeto avança._
 [gerado] Integração: VS em `vs-production-c4dd.up.railway.app` (auth + membership). Firebase
 `descontoss-vip` (Google). Lembrete: autorizar o domínio do app no Firebase Console.
 
+[2026-11-04] 403 do provedor com `code`: `login` e `loginGoogle` leem o `code` do corpo do 403 —
+`CONTA_DESATIVADA` / `CONTA_NAO_VERIFICADA` → 403 com a mensagem da conta; qualquer outro 403 (token de
+serviço recusado, ou provedor sem `code`) → 502 de configuração; 429 → "Muitas tentativas". Antes todo
+403 virava erro de configuração. Testes em `authController.test.ts`; os apps já gerados (Área Saúde
+Mental, Minha Motivação, Planejador) receberam a mesma mudança.
+
 ---
 
 > Base de auth e estrutura geradas pelo `vs-app-toolkit`.

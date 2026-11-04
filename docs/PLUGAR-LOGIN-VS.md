@@ -107,3 +107,10 @@ domínio do app (ex.: `meu-app.vercel.app`). Sem isso o popup do Google é bloqu
   login/logout.
 - **Membership tem que ser verificada** (`verify-membership`), não só lida do login — o status que o
   login devolve pode estar desatualizado.
+- **403 do provedor não é sempre o token do app.** O Meu Ecoo responde 403 tanto para o token de
+  serviço recusado quanto para uma conta que não pode entrar (desativada no painel, ou com o e-mail
+  ainda não confirmado). O corpo traz `code`: `CONTA_DESATIVADA` e `CONTA_NAO_VERIFICADA` viram 403 com
+  a mensagem da conta; `SERVICO_NAO_AUTORIZADO` (ou um provedor sem `code`, como o VS antigo) é erro de
+  configuração do app (502). Tratar todo 403 como configuração faz quem está desativado ler "erro de
+  configuração" (contrato em `docs/PARTNER-LOGIN-TOKENS.md` do MeuEcoo). O limite de tentativas chega
+  como 429, com a mensagem em `error`.

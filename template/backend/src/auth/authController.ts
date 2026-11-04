@@ -34,6 +34,21 @@ export function serializeUser(user: {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+// O provedor (hoje o Meu Ecoo) responde 403 tanto para conta que não pode entrar quanto para o
+// token de serviço deste app recusado, e só o `code` do corpo separa os dois (campo que o VS
+// antigo não manda: sem `code`, o 403 segue como erro de configuração). A mensagem vem destas
+// constantes, nunca do texto do provedor.
+const MENSAGEM_DE_CONTA: Record<string, string> = {
+  CONTA_DESATIVADA: 'Conta desativada. Fale com o suporte.',
+  CONTA_NAO_VERIFICADA: 'Confirme seu e-mail para entrar. Use o link que enviamos quando você criou a conta.',
+}
+const MENSAGEM_DE_CONFIGURACAO = 'Erro de configuração do serviço. Contate o suporte.'
+const MUITAS_TENTATIVAS = 'Muitas tentativas. Aguarde alguns minutos.'
+
+function mensagemDeConta(body: any): string | undefined {
+  return typeof body?.code === 'string' ? MENSAGEM_DE_CONTA[body.code] : undefined
+}
+
 function signToken(userId: string, email: string): string {
   const options: SignOptions = {
     expiresIn: (process.env.JWT_EXPIRES_IN || '7d') as SignOptions['expiresIn'],
@@ -114,13 +129,17 @@ export async function login(req: Request, res: Response) {
 
     if (!raw.ok) {
       const body: any = await raw.json().catch(() => ({}))
-      // 403 = token de serviço inválido (erro de configuração nosso) → 502
-      const status = raw.status === 403 ? 502 : raw.status
-      const message =
-        raw.status === 403
-          ? 'Erro de configuração do serviço. Contate o suporte.'
-          : body.detail || body.message || 'Credenciais inválidas'
-      return res.status(status).json({ error: message })
+      if (raw.status === 403) {
+        // Conta que não pode entrar → 403 com a mensagem da conta. Qualquer outro 403 (token de
+        // serviço recusado, ou um provedor antigo sem `code`) é erro de configuração nosso → 502.
+        const conta = mensagemDeConta(body)
+        if (conta) return res.status(403).json({ error: conta })
+        return res.status(502).json({ error: MENSAGEM_DE_CONFIGURACAO })
+      }
+      if (raw.status === 429) return res.status(429).json({ error: MUITAS_TENTATIVAS })
+      // O Meu Ecoo manda a mensagem em `error`; `detail` e `message` são do contrato do VS.
+      const message = body.error || body.detail || body.message || 'Credenciais inválidas'
+      return res.status(raw.status).json({ error: message })
     }
 
     partnerResponse = await raw.json()
@@ -166,8 +185,13 @@ export async function loginGoogle(req: Request, res: Response) {
 
     if (!raw.ok) {
       const body: any = await raw.json().catch(() => ({}))
+      if (raw.status === 403) {
+        const conta = mensagemDeConta(body)
+        if (conta) return res.status(403).json({ error: conta })
+      }
+      if (raw.status === 429) return res.status(429).json({ error: MUITAS_TENTATIVAS })
       const message =
-        body.message || body.detail || 'Não foi possível autenticar com o Google.'
+        body.error || body.message || body.detail || 'Não foi possível autenticar com o Google.'
       return res.status(raw.status).json({ error: message })
     }
 

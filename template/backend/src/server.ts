@@ -22,7 +22,7 @@ app.use(express.json())
 app.get('/health', (_req, res) => res.json({ ok: true, ts: Date.now() }))
 
 // ── Autenticação (módulo VS) ────────────────────────────────────────────────────
-// /api/auth/login, /api/auth/google, /api/auth/me
+// /api/auth/login, /api/auth/google, /api/auth/refresh, /api/auth/logout, /api/auth/me
 app.use(authRoutes)
 
 // ── Rotas de negócio do {{APP_NAME}} ────────────────────────────────────────────

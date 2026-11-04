@@ -22,9 +22,34 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
+  sessoesDeRenovacao SessaoDeRenovacao[]
+
   // ── Campos e relations do {{APP_NAME}} entram aqui ──────────────────────────
   // Ex.: hasOnboarded Boolean @default(false) @map("has_onboarded")
   // Ex.: items        Item[]
 
   @@map("users")
+}
+
+// Refresh tokens da sessão curta. Só o hash SHA-256 do token vai ao banco; o valor puro
+// existe apenas na resposta que o entrega. Cada login abre uma família (`familiaId`); cada
+// renovação consome um token e emite o seguinte na mesma família. Token já usado que
+// reaparece revoga a família inteira (detecção de reuso). A família vale no máximo 30 dias
+// desde o login que a abriu (`familiaIniciadaEm`).
+model SessaoDeRenovacao {
+  id                String    @id @default(cuid())
+  userId            String    @map("user_id")
+  familiaId         String    @map("familia_id")
+  tokenHash         String    @unique @map("token_hash")
+  expiraEm          DateTime  @map("expira_em")
+  usadoEm           DateTime? @map("usado_em")
+  revogadoEm        DateTime? @map("revogado_em")
+  familiaIniciadaEm DateTime  @map("familia_iniciada_em")
+  criadoEm          DateTime  @default(now()) @map("criado_em")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([familiaId])
+  @@index([userId])
+  @@map("sessoes_de_renovacao")
 }

@@ -1,16 +1,20 @@
 import { Router } from 'express'
-import { login, loginGoogle, getMe } from './authController.js'
+import { login, loginGoogle, refresh, logout, getMe } from './authController.js'
 import { requireAuth } from './requireAuth.js'
 
 // ── Rotas de autenticação ──────────────────────────────────────────────────────
 // Monte com: app.use(authRoutes) — registra:
 //   POST /api/auth/login   (público — email+senha via VS)
 //   POST /api/auth/google  (público — id_token Firebase via VS)
+//   POST /api/auth/refresh (público — troca o refresh token por um par novo; ver refreshTokens.ts)
+//   POST /api/auth/logout  (público — revoga a família do refresh token; sempre 204)
 //   GET  /api/auth/me       (autenticado — restaura sessão; não exige membership)
 const authRoutes = Router()
 
 authRoutes.post('/api/auth/login', login)
 authRoutes.post('/api/auth/google', loginGoogle)
+authRoutes.post('/api/auth/refresh', refresh)
+authRoutes.post('/api/auth/logout', logout)
 authRoutes.get('/api/auth/me', requireAuth, getMe)
 
 export default authRoutes

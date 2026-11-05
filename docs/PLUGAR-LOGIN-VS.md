@@ -96,6 +96,32 @@ Já vem tudo pronto. Só falta provisionar a infra e preencher as variáveis —
 | `VITE_FIREBASE_APP_ID` | app id do `descontoss-vip` |
 | `VITE_CHECKOUT_URL` | URL de checkout do Descontos VIP |
 
+### Cabeçalhos de segurança e CSP (já vêm no template)
+
+Front e API saem com os cabeçalhos do guia de segurança do ecossistema (seção 8):
+`X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, `Referrer-Policy: strict-origin-when-cross-origin`,
+`Content-Security-Policy` e `Permissions-Policy`; o HSTS é o da Vercel (front) e o do
+`backend/src/lib/securityHeaders.ts` (API, que também tira o `x-powered-by`). O front os manda pelo
+`vercel.json`; a API, pelo middleware.
+
+- **A CSP do front já nasce em bloqueio**, com só o que o login com Google e a API exigem: `script-src`
+  `apis.google.com`; `connect-src` a API do app, `apis.google.com` (telemetria do carregador do Google),
+  `identitytoolkit`, `securetoken` e `www.googleapis.com`; `frame-src` o `authDomain` do Firebase
+  (`descontoss-vip.firebaseapp.com`), `accounts.google.com` e `content.googleapis.com`.
+- **Ao provisionar, troque no `connect-src` o domínio padrão da API** (`https://<slug>-api.up.railway.app`)
+  pelo domínio real do backend Railway. Todo destino novo (outra API, imagem de fora, vídeo, fonte) precisa
+  entrar na diretiva certa do `vercel.json`, senão o navegador bloqueia.
+- **Sem curinga, sem `unsafe-eval`, sem `unsafe-inline` em script.** Se o app ganhar um `<script>` embutido
+  no `index.html`, libere-o com o hash `sha256-` do conteúdo (e um teste que recalcule o hash), não com `unsafe-inline`.
+- **Nunca ponha `Cross-Origin-Opener-Policy: same-origin`** (nem o `helmet()` com os padrões): ele quebra o popup do
+  login com Google do Firebase.
+- **Violações vão para o log da API do Meu Ecoo.** O `report-uri` aponta para `POST /api/csp-report` (coletor
+  público, sem dado pessoal, endereços sem `?`/`#`). Para ver: no Railway, projeto MeuEcoo, serviço da API, filtrar
+  o log por `[csp]`; cada linha traz o app, o modo (`bloqueio` ou `report-only`), a diretiva e o que foi barrado.
+- **Para testar uma CSP nova sem arriscar o login**, ponha a política completa em
+  `Content-Security-Policy-Report-Only` (e deixe em bloqueio só `frame-ancestors 'none'`), publique, olhe o log do coletor
+  e só então passe para bloqueio. O teste `src/seguranca-cabecalhos.test.ts` vale para os dois nomes.
+
 ### Firebase Console (passo manual)
 
 No projeto **`descontoss-vip`** → Authentication → Settings → **Authorized domains** → adicionar o

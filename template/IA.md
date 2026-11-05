@@ -123,3 +123,11 @@ expiração curta e refresh com rotação).
 ---
 
 > Base de auth e estrutura geradas pelo `vs-app-toolkit`.
+
+- [2026-11-05] CABEÇALHOS DE SEGURANÇA E CSP DE FÁBRICA. O template passa a nascer com os cabeçalhos do guia de segurança do
+  ecossistema: `vercel.json` (front: CSP em bloqueio com só o que o login com Google e a API exigem, `X-Content-Type-Options`,
+  `X-Frame-Options`, `Referrer-Policy`, `Permissions-Policy`, `report-uri` para o coletor do Meu Ecoo) e `backend/src/lib/securityHeaders.ts`
+  (API: os mesmos básicos, CSP `default-src 'none'`, HSTS, sem `x-powered-by`, sem COOP, que quebraria o popup do Google). Testes:
+  `src/seguranca-cabecalhos.test.ts` e `backend/src/lib/__tests__/securityHeaders.test.ts`. A lista do Google é a medida em 05/11/2026 nos
+  apps reais (Minha Motivação, Área Saúde Mental e Planejador, em Chrome real, em bloqueio: zero violações). Ao provisionar, trocar no
+  `connect-src` o domínio padrão da API pelo real (o gerador lembra no checklist). Detalhes em `docs/PLUGAR-LOGIN-VS.md`.

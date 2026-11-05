@@ -3,8 +3,14 @@ import express from 'express'
 import cors from 'cors'
 import authRoutes, { requireAuth, requireMember } from './auth/authRoutes.js'
 import { corsOrigin } from './lib/corsOrigin.js'
+import { securityHeaders } from './lib/securityHeaders.js'
 
 const app = express()
+
+// Não anuncia o framework (`x-powered-by: Express` só ajuda quem procura versões vulneráveis) e manda os
+// cabeçalhos de segurança do guia em toda resposta, inclusive 404 e erro (ver lib/securityHeaders.ts).
+app.disable('x-powered-by')
+app.use(securityHeaders)
 
 // ── CORS ─────────────────────────────────────────────────────────────────────
 // Em produção, permite apenas o domínio exato do frontend (Vercel); sem

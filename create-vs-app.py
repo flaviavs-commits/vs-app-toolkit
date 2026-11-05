@@ -115,6 +115,8 @@ def print_checklist(name: str, slug: str, port: str, dest: Path) -> None:
     log("     - criar projeto apontando para a raiz do app")
     log("     - variaveis: VITE_API_URL (= backend Railway), VITE_FIREBASE_* (descontoss-vip),")
     log("       VITE_CHECKOUT_URL")
+    log("     - vercel.json: trocar, no connect-src da CSP, o dominio padrao da API pelo")
+    log("       dominio real do backend Railway (a CSP bloqueia qualquer outro destino)")
     log("")
     log("4. Firebase Console (projeto descontoss-vip):")
     log(f"     - Authentication > Settings > Authorized domains > adicionar {slug}.vercel.app")

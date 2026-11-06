@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "engines": {
+    "node": "24.x"
+  },
   "description": "{{APP_NAME}} — app do ecossistema Meu Ecoo (login compartilhado, acesso para assinantes).",
   "scripts": {
     "dev": "vite",

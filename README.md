@@ -38,8 +38,17 @@ vs-app-toolkit/
 │   └── ...              # configs, start_app.py, docs com placeholders
 └── docs/
     ├── ARQUITETURA-IDENTIDADE.md  # onde mora o login, hoje e para onde vai
+    ├── PADRAO-VISUAL.md           # tema claro/escuro, tokens por papel, guardas (06/11/2026)
     └── PLUGAR-LOGIN-VS.md         # como adicionar auth a um app existente
 ```
+
+## 🎨 Padrão visual (desde 06/11/2026)
+
+Todo app gerado já nasce no padrão dos Mini Apps do Meu Ecoo: tema claro por padrão e escuro derivado da
+própria paleta (seletor Claro / Escuro / Sistema), tokens por papel em `src/index.css`, fonte servida pelo
+app, anel de foco global, alvos de 44 px, `Shell` com cabeçalho e abas, "Baixar meus dados" e guardas
+automáticas no `npm test` (contraste, cor fixa, foco, texto ≥ 12 px, emoji, movimento). Para dar a cara
+do app: [`docs/PADRAO-VISUAL.md`](docs/PADRAO-VISUAL.md).
 
 ## 🚀 Como Usar
 

@@ -32,11 +32,21 @@ interface AuthContextValue {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
+// Com o armazenamento bloqueado (cookies desativados, navegação privada), ler lança: o app abre
+// sem sessão em vez de cair antes da primeira tela.
+function tokenGuardado(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => localStorage.getItem(TOKEN_KEY))
+  const [token, setToken] = useState<string | null>(tokenGuardado)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isBootstrapping, setIsBootstrapping] = useState(!!localStorage.getItem(TOKEN_KEY))
+  const [isBootstrapping, setIsBootstrapping] = useState(() => !!tokenGuardado())
   const [error, setError] = useState<string | null>(null)
 
   const isLoggedIn = !!token && !!user

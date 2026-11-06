@@ -1,3 +1,122 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  /*
+   * Tokens por papel, em canais RGB ("R G B"): o Tailwind os lê como rgb(var(--x) / <alpha-value>)
+   * (tailwind.config.js), então bg-superficie/70 continua valendo. Claro no :root (tema padrão) e
+   * escuro em :root[data-tema="escuro"] — o escuro sai da paleta do próprio app, não de um tema
+   * genérico. Troque os VALORES para dar a cara do app; os NOMES ficam, porque os componentes e as
+   * guardas (src/guardas/) consomem papéis, não cores. Contraste mínimo conferido em
+   * src/guardas/tokens.test.ts: texto 7:1, apoio 6:1, apagado e cores de estado 4,5:1, tinta sobre a
+   * marca 4,5:1, borda de controle 3:1.
+   *
+   *   fundo            página
+   *   superficie       cartões e painéis
+   *   superficie-2     trilho, hover e campo
+   *   borda            divisória (cartão, cabeçalho)
+   *   borda-controle   campo, select e botão de contorno (≥ 3:1)
+   *   texto / apoio / apagado   três níveis de texto
+   *   marca            cor do app como fundo (botão principal, barra de progresso)
+   *   marca-texto      cor do app como texto, link e anel de foco
+   *   tinta            texto sobre a marca
+   *   selecionado      aba ativa, item escolhido
+   *   sucesso / aviso / erro / info   estados, como texto e como tinta de selo
+   */
+  :root {
+    --fundo: 246 246 244;
+    --superficie: 255 255 255;
+    --superficie-2: 235 235 231;
+    --borda: 226 226 221;
+    --borda-controle: 138 138 131;
+    --texto: 28 28 26;
+    --apoio: 74 74 70;
+    --apagado: 99 99 94;
+    --marca: 31 95 168;
+    --marca-texto: 26 79 140;
+    --tinta: 255 255 255;
+    --selecionado: 228 236 247;
+    --sucesso: 31 111 63;
+    --aviso: 138 90 10;
+    --erro: 180 35 24;
+    --info: 29 78 216;
+  }
+
+  :root[data-tema="escuro"] {
+    --fundo: 20 20 18;
+    --superficie: 30 30 27;
+    --superficie-2: 42 42 38;
+    --borda: 51 51 47;
+    --borda-controle: 140 140 133;
+    --texto: 242 242 238;
+    --apoio: 207 207 200;
+    --apagado: 169 169 161;
+    --marca: 79 143 224;
+    --marca-texto: 143 189 245;
+    --tinta: 11 26 46;
+    --selecionado: 43 58 78;
+    --sucesso: 126 210 154;
+    --aviso: 240 192 96;
+    --erro: 246 156 146;
+    --info: 157 187 238;
+  }
+
+  /* Rolagem suave só para quem não pediu movimento reduzido. */
+  @media (prefers-reduced-motion: no-preference) {
+    html {
+      scroll-behavior: smooth;
+    }
+  }
+
+  body {
+    @apply bg-fundo text-texto antialiased;
+  }
+
+  /* Foco visível em tudo que é clicável: anel sólido na cor do app, deslocado, que aparece sobre
+     qualquer superfície e no alto contraste. Nenhum controle precisa de classe própria. */
+  :focus-visible {
+    outline: 2px solid rgb(var(--marca-texto));
+    outline-offset: 2px;
+  }
+
+  /* Campos e botões herdam a fonte do app. */
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+}
+
+@layer components {
+  /* Adaptado de "heavy-horse-9" por ami-hp — https://uiverse.io/ami-hp/heavy-horse-9 (MIT, Uiverse.io) */
+  /* Seletor de tema: ladrilho com o ícone da preferência atual (data-estado); a troca esmaece com um
+     giro de 30° e o ladrilho "aperta" ao toque. 44px: alvo de toque mínimo. */
+  .tema { position: relative; display: grid; place-items: center; flex: none; width: 2.75rem; height: 2.75rem; padding: 0; border: 1px solid rgb(var(--borda)); border-radius: 0.75rem; background: rgb(var(--superficie)); color: rgb(var(--apoio)); cursor: pointer; transition: background-color 150ms ease, border-radius 150ms ease; }
+  .tema:hover { background: rgb(var(--selecionado)); }
+  .tema:active { border-radius: 0.5rem; }
+  .tema svg { grid-area: 1 / 1; width: 1.125rem; height: 1.125rem; opacity: 0; transform: rotate(-30deg) scale(0.8); transition: opacity 200ms ease, transform 200ms ease; }
+  .tema[data-estado="claro"] .tema-sol, .tema[data-estado="escuro"] .tema-lua, .tema[data-estado="sistema"] .tema-tela { opacity: 1; transform: none; }
+  @media (prefers-reduced-motion: reduce) {
+    .tema, .tema svg { transition: none; }
+  }
+
+  /* Adaptado de "giant-shrimp-51" por Yaya12085 — https://uiverse.io/Yaya12085/giant-shrimp-51 (MIT, Uiverse.io) */
+  /* Carregando: só aparece depois de 300 ms (uma leitura rápida não chega a piscar); o ponto respira
+     devagar. */
+  .carregando { display: flex; align-items: center; justify-content: center; gap: 0.875rem; padding: 1.75rem 1rem; animation: carregando-surge 200ms ease-out 300ms both; }
+  .carregando p { margin: 0; font-size: 0.875rem; color: rgb(var(--apoio)); }
+  .respiro { flex: none; width: 0.75rem; height: 0.75rem; border-radius: 50%; background: rgb(var(--marca)); animation: respiro 2.4s ease-out infinite; }
+  @keyframes carregando-surge { from { opacity: 0; } }
+  @keyframes respiro { 0% { box-shadow: 0 0 0 0 rgb(var(--marca) / 0.45); } 70%, 100% { box-shadow: 0 0 0 0.875rem rgb(var(--marca) / 0); } }
+  @media (prefers-reduced-motion: reduce) {
+    .carregando { animation-duration: 1ms; }
+    .respiro { animation: none; box-shadow: 0 0 0 0.3125rem rgb(var(--marca) / 0.18); }
+  }
+}
+
+/* Movimento reduzido: a entrada das telas (animate-fade-in) não anima. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-in { animation: none; }
+}

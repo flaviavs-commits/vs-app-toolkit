@@ -42,6 +42,19 @@ misturar lógica de negócio nesses arquivos.
 
 ---
 
+## 🎨 PADRÃO VISUAL
+
+[2026-11-06] O template nasce no padrão dos Mini Apps do Meu Ecoo (redesign de 30/10, confirmado em
+02/11: "padrão Meu Ecoo mantendo a identidade de cada app"): tokens por papel em `src/index.css` (canais
+RGB, claro no `:root` e escuro em `:root[data-tema="escuro"]`), tema no `<html>` antes da primeira pintura
+(`index.html` + `src/lib/tema.ts`), `SeletorTema` Claro / Escuro / Sistema, fonte servida pelo app
+(`@fontsource-variable`), anel de foco global, `Shell` (cabeçalho com marca, tema, "Baixar meus dados" e
+"Sair"; abas com `aria-current`; `<main>`), `Button`/`Card`/`Vazio`/`Carregador`, dados no aparelho
+(`src/lib/armazenamento.ts`) e as guardas de `src/guardas/` no `npm test`. A marca do app fica em
+`src/marca.tsx`; as telas de entrada só leem de lá. Guia: `docs/PADRAO-VISUAL.md` do toolkit.
+
+---
+
 ## 🧪 TESTES
 
 [gerado] **Automatizados (auth/authorization — obrigatórios por padrão):** Vitest no backend cobre

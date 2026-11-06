@@ -40,6 +40,15 @@ rotas de `backend/src/server.ts` (backend, protegidas por `requireMember`).
 └── .env.example
 ```
 
+## 🎨 Visual
+
+O app segue o padrão dos Mini Apps do Meu Ecoo: tema claro por padrão e escuro da própria paleta
+(seletor Claro / Escuro / Sistema no cabeçalho), tokens por papel em `src/index.css`, fonte servida pelo
+app, foco visível em tudo, alvos de 44 px e "Baixar meus dados" no cabeçalho. As guardas em
+`src/guardas/` rodam no `npm test` e acusam cor fixa, contraste abaixo do mínimo, texto < 12 px, emoji
+de interface e animação sem movimento reduzido. Para mudar cores, fonte e marca:
+`docs/PADRAO-VISUAL.md` no toolkit.
+
 ## 🛡️ Proteção para repositório público
 
 Antes do primeiro commit, ative o hook versionado:

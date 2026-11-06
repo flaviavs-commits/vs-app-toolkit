@@ -1,35 +1,38 @@
-import { LogOut } from 'lucide-react'
-import { useAuth } from './auth/AuthContext'
+import { useState } from 'react'
+import { Home, Settings } from 'lucide-react'
 
-// ── Conteúdo do app (só visível para membros ativos) ────────────────────────────
-// Este é o ponto de partida do {{APP_NAME}}. Substitua pelo seu app real —
-// telas, abas, dashboard, etc. O gate de membership já garante que só membros
-// chegam aqui (frontend) e a API já está protegida por requireMember (backend).
+import { useAuth } from './auth/AuthContext'
+import { Shell, type Aba } from './components/Shell'
+import { Card, CardContent, CardHeader, CardTitle } from './ui'
+
+// ── Conteúdo do app (só visível para assinantes) ───────────────────────────────
+// Este é o ponto de partida do {{APP_NAME}}. Troque as abas e o conteúdo pelo app real; a marca
+// (nome, ícone) fica em src/marca.tsx e as cores em src/index.css. O gate de assinatura já garante
+// que só assinantes chegam aqui (frontend) e a API já está protegida por requireMember (backend).
+type Area = 'inicio' | 'ajustes'
+
+const ABAS: Array<Aba<Area>> = [
+  { id: 'inicio', rotulo: 'Início', Icone: Home },
+  { id: 'ajustes', rotulo: 'Ajustes', Icone: Settings },
+]
+
 export default function AppContent() {
-  const { user, logout } = useAuth()
+  const { user } = useAuth()
+  const [area, setArea] = useState<Area>('inicio')
 
   return (
-    <div className="min-h-screen bg-slate-950 text-white">
-      <header className="border-b border-slate-800">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-4">
-          <h1 className="text-lg font-semibold">{{APP_NAME}}</h1>
-          <button
-            onClick={logout}
-            className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sair
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-5xl px-4 py-16 text-center">
-        <h2 className="text-2xl font-bold">Olá, {user?.nome || user?.email} 👋</h2>
-        <p className="mt-2 text-slate-400">
-          Você é membro ativo. Comece a construir o {{APP_NAME}} aqui
-          (<code className="text-slate-300">src/AppContent.tsx</code>).
-        </p>
-      </main>
-    </div>
+    <Shell abas={ABAS} abaAtiva={area} onTrocarAba={setArea}>
+      <Card className="animate-fade-in">
+        <CardHeader>
+          <CardTitle>Olá, {user?.nome || user?.email}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-apoio">
+            Você é assinante. Comece a construir o {'{{APP_NAME}}'} aqui (<code className="text-marca-texto">src/AppContent.tsx</code>
+            ). Área atual: {area}.
+          </p>
+        </CardContent>
+      </Card>
+    </Shell>
   )
 }

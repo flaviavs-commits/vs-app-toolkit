@@ -31,3 +31,6 @@ __pycache__/
 # Logs
 *.log
 npm-debug.log*
+
+# TypeScript (tsc -b)
+*.tsbuildinfo

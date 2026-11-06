@@ -127,7 +127,7 @@ expiração curta e refresh com rotação).
   vence o padrão novo; remova-o ou ajuste. A renovação depende da rota do Meu Ecoo: sem ela o app responde
   503 e a pessoa volta ao login quando o JWT de 30 min vencer.
 - **Limites:** sem arquivo de migração versionado, porque o template nunca teve `prisma/migrations` e o
-  `railway.json` usa `prisma db push` (a tabela nasce no deploy). O template não tem limite de tentativas
+  `start` do backend roda `prisma db push` (a tabela nasce no deploy). O template não tem limite de tentativas
   próprio nem o login único (`?meuecoo_codigo=`); só o `clientIp.ts` veio, para o `X-Client-IP`. Quem tiver
   um limitador no app deve chaveá-lo pelo mesmo `clientIp`.
 - **Como validar:** `cd backend && npm test` (79 casos; eram 29) e `npm test` na raiz (27 casos do

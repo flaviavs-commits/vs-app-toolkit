@@ -12,12 +12,12 @@
 
 ## Os quatro apps de 06/11/2026
 
-| App | Slug / id | Área (grupo no catálogo) | Porta local do backend | Fonte | Repo local |
+| App | Slug / id | Área (grupo no catálogo) | Porta local do backend | Fonte | Repositório (privado) |
 | --- | --- | --- | --- | --- | --- |
-| Meu Foco | `meu-foco` | Foco e disciplina | 3011 | Inter | `GitHub\meu-foco` |
-| Comunicação Clara | `comunicacao-clara` | Comunicação | 3012 | Manrope | `GitHub\comunicacao-clara` |
-| Minha Carreira | `minha-carreira` | Carreira | 3013 | Figtree | `GitHub\minha-carreira` |
-| Meu Sono | `meu-sono` | Saúde e bem-estar | 3014 | Nunito | `GitHub\meu-sono` |
+| Meu Foco | `meu-foco` | Foco e disciplina | 3011 | Inter | [`AndreGustavoms/meu-foco`](https://github.com/AndreGustavoms/meu-foco) |
+| Comunicação Clara | `comunicacao-clara` | Comunicação | 3012 | Manrope | [`AndreGustavoms/comunicacao-clara`](https://github.com/AndreGustavoms/comunicacao-clara) |
+| Minha Carreira | `minha-carreira` | Carreira | 3013 | Figtree | [`AndreGustavoms/minha-carreira`](https://github.com/AndreGustavoms/minha-carreira) |
+| Meu Sono | `meu-sono` | Saúde e bem-estar | 3014 | Nunito | [`AndreGustavoms/meu-sono`](https://github.com/AndreGustavoms/meu-sono) |
 
 Descrições para o catálogo (uma linha, no tom das existentes):
 
@@ -28,9 +28,13 @@ Descrições para o catálogo (uma linha, no tom das existentes):
 
 ## 1. Repositório
 
-1. Criar o repositório remoto (na organização dos outros Mini Apps) e apontar o `origin`:
-   `git remote add origin <url>` · `git push -u origin main`.
-2. O hook de proteção (`.githooks/pre-commit`) já está ativo localmente; o workflow
+1. Criar o repositório remoto e enviar a `main`. Os quatro de 06/11 já estão na tabela acima (privados,
+   `main` enviada, proteção do GitHub rodando verde).
+2. **Envio com o workflow:** o app traz `.github/workflows/`, e o GitHub recusa o envio feito com um token
+   sem o escopo `workflow` (o do `gh` desta máquina não tem). Crie com `gh repo create <dono>/<slug>
+   --private --source . --remote origin` (sem `--push`) e envie com `git push -u origin main`, que usa o
+   Git Credential Manager (ou rode antes `gh auth refresh -s workflow`).
+3. O hook de proteção (`.githooks/pre-commit`) já está ativo localmente; o workflow
    `.github/workflows/public-repo-guard.yml` roda a mesma checagem no GitHub.
 
 ## 2. Backend (Railway)

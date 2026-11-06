@@ -1,0 +1,5 @@
+# O backend vai para o Railway; a Vercel só publica o front (e não deve tratá-lo como um serviço).
+backend
+.githooks
+.github
+scripts

@@ -39,6 +39,7 @@ vs-app-toolkit/
 └── docs/
     ├── ARQUITETURA-IDENTIDADE.md  # onde mora o login, hoje e para onde vai
     ├── PADRAO-VISUAL.md           # tema claro/escuro, tokens por papel, guardas (06/11/2026)
+    ├── PUBLICAR-MINI-APP.md       # checklist: repo, Railway, Vercel, token no Meu Ecoo, catálogo
     └── PLUGAR-LOGIN-VS.md         # como adicionar auth a um app existente
 ```
 

@@ -182,7 +182,7 @@ curta e refresh com rotação.
   que a renovação devolve (assinatura e nome).
 
 **Publicação:** front primeiro, depois o backend — o front novo funciona sem refresh token guardado e sem a
-rota no backend. O backend cria a tabela no deploy (`prisma db push`, como o `railway.json` já faz).
+rota no backend. O backend cria a tabela ao subir (`prisma db push` no `start` do `backend/package.json`).
 
 ---
 

@@ -150,3 +150,10 @@ expiração curta e refresh com rotação).
   a CSP do `vercel.json` (`script-src 'self' …`, sem `'unsafe-inline'`) bloquearia o script embutido e o app piscaria no
   claro. `src/lib/tema.test.ts` confere que o arquivo e o `aplicarTema` chegam ao mesmo resultado e que o HTML não embute
   script. Padrão visual completo em `docs/PADRAO-VISUAL.md` do toolkit.
+
+- [2026-11-06] TABELAS NO START, NÃO NO PRÉ-DEPLOY. Medido num `railway up` em produção: o Railway construiu com o Railpack,
+  não aplicou o `preDeployCommand` do `railway.json` e podou as devDependencies da imagem final, então `npx prisma db push`
+  no pré-deploy não rodava e a API respondia 500 (tabela `sessoes_de_renovacao` inexistente). Agora o `prisma` (CLI) é
+  dependência de produção e o `start` é `prisma db push --skip-generate && node dist/server.js`: não depende da configuração
+  da plataforma (o Railway avisa que `railway.json` deixa de valer em 2026-12-01). `db push` recusa mudança que perde dados;
+  o deploy falha e avisa em vez de apagar. O `railway.json` fica com `RAILPACK`, `startCommand: npm start` e o healthcheck.

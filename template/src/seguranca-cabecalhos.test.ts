@@ -51,4 +51,10 @@ describe('cabeçalhos de segurança do vercel.json', () => {
   it('avisa o coletor de violações do Meu Ecoo (report-uri)', () => {
     expect(diretiva('report-uri')).toBe('https://api-production-1b34.up.railway.app/api/csp-report')
   })
+
+  it('o build não embute asset como data:, porque a CSP só aceita o próprio site em font-src e img-src', () => {
+    expect(diretiva('font-src')).toBe("'self'")
+    expect(diretiva('img-src')).toBe("'self'")
+    expect(readFileSync('vite.config.ts', 'utf8')).toMatch(/assetsInlineLimit:\s*0/)
+  })
 })

@@ -18,7 +18,7 @@
    componentes consomem papéis (`bg-marca`, `text-apoio`, `border-borda-controle`); nunca uma cor fixa.
 2. **Claro por padrão, escuro da própria paleta, sistema opcional.** O seletor Claro / Escuro / Sistema
    fica no cabeçalho e nas telas de entrada; a escolha é do aparelho (`<slug>:tema` no `localStorage`) e
-   entra no `<html>` antes da primeira pintura (script inline do `index.html`), com `color-scheme` e
+   entra no `<html>` antes da primeira pintura (`public/tema-inicial.js`, no `<head>`), com `color-scheme` e
    `theme-color`.
 3. **Contraste guardado por teste.** Texto 7:1, apoio 6:1, apagado e cores de estado 4,5:1, tinta sobre a
    marca 4,5:1, borda de controle 3:1 — sobre todas as superfícies em que aparecem
@@ -42,7 +42,7 @@
 | --- | --- |
 | `src/index.css` | Os papéis nos dois temas (canais RGB), anel de foco global, seletor de tema e carregador (Uiverse) |
 | `tailwind.config.js` | Os papéis como cores do Tailwind (`rgb(var(--x) / <alpha-value>)`), `darkMode` pelo `data-tema`, a fonte |
-| `index.html` | `theme-color` e o script do tema antes da primeira pintura |
+| `index.html`, `public/tema-inicial.js` | `theme-color` e o script do tema antes da primeira pintura (arquivo, não embutido: a CSP bloqueia script embutido) |
 | `src/lib/tema.ts` | Preferência, tema efetivo, `aplicarTema`, as cores da barra |
 | `src/lib/armazenamento.ts` | Dados no aparelho com o prefixo do app, "Baixar meus dados" (JSON) |
 | `src/marca.tsx` | Nome, linha de apoio e ícone do app — o único lugar que as telas de entrada leem |
@@ -55,7 +55,7 @@
 
 1. `src/index.css`: troque os valores dos papéis no `:root` (claro) e em `:root[data-tema="escuro"]`.
    Rode `npm test`: `tokens.test.ts` acusa qualquer par abaixo do mínimo.
-2. `src/lib/tema.ts` (`COR_DA_BARRA`) e `index.html` (as duas cores do script e a `theme-color`): o
+2. `src/lib/tema.ts` (`COR_DA_BARRA`), `public/tema-inicial.js` (as duas cores) e `index.html` (`theme-color`): o
    `--fundo` de cada tema. `tema.test.ts` confere que os três concordam.
 3. Fonte: `npm i @fontsource-variable/<fonte>`, import em `src/main.tsx`, `fontFamily.sans` no
    `tailwind.config.js`.

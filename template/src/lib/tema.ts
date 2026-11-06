@@ -1,7 +1,7 @@
 /**
  * Tema do app: claro (padrão), escuro ou sistema. A escolha é do aparelho, não da conta: fica no
  * localStorage e vai para o <html> como data-tema, com o colorScheme e a theme-color da barra do
- * navegador. O script inline do index.html faz o mesmo antes da primeira pintura; tema.test.ts
+ * navegador. O public/tema-inicial.js faz o mesmo antes da primeira pintura; tema.test.ts
  * confere que os dois concordam e que as cores da barra são o --fundo de cada tema (index.css).
  */
 export type PreferenciaTema = 'claro' | 'escuro' | 'sistema'

@@ -144,3 +144,9 @@ expiração curta e refresh com rotação).
   `src/seguranca-cabecalhos.test.ts` e `backend/src/lib/__tests__/securityHeaders.test.ts`. A lista do Google é a medida em 05/11/2026 nos
   apps reais (Minha Motivação, Área Saúde Mental e Planejador, em Chrome real, em bloqueio: zero violações). Ao provisionar, trocar no
   `connect-src` o domínio padrão da API pelo real (o gerador lembra no checklist). Detalhes em `docs/PLUGAR-LOGIN-VS.md`.
+
+- [2026-11-06] TEMA ANTES DA PINTURA COM A CSP. O script que aplica o tema salvo (claro, escuro ou sistema) antes da
+  primeira pintura fica em `public/tema-inicial.js`, carregado no `<head>` do `index.html` sem módulo, e não embutido:
+  a CSP do `vercel.json` (`script-src 'self' …`, sem `'unsafe-inline'`) bloquearia o script embutido e o app piscaria no
+  claro. `src/lib/tema.test.ts` confere que o arquivo e o `aplicarTema` chegam ao mesmo resultado e que o HTML não embute
+  script. Padrão visual completo em `docs/PADRAO-VISUAL.md` do toolkit.

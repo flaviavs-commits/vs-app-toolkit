@@ -81,15 +81,21 @@ describe('aplicarTema', () => {
   })
 })
 
-describe('script inline do index.html', () => {
-  // Roda antes da primeira pintura: tem de chegar ao mesmo resultado do aplicarTema, sem o bundle.
+describe('script do tema antes da pintura (public/tema-inicial.js)', () => {
+  // Roda antes do app: tem de chegar ao mesmo resultado do aplicarTema, sem o bundle. Fica num arquivo, e não
+  // embutido no HTML, porque a CSP do vercel.json bloqueia script embutido.
   const html = readFileSync(resolve(process.cwd(), 'index.html'), 'utf8')
-  const script = html.match(/<script>([\s\S]*?)<\/script>/)?.[1]
+  const script = readFileSync(resolve(process.cwd(), 'public/tema-inicial.js'), 'utf8')
 
-  it('existe e, com escuro salvo, aplica o escuro como o aplicarTema', () => {
-    expect(script, 'script inline (<script> sem atributos) no index.html').toBeDefined()
+  it('o index.html carrega o arquivo no <head>, sem módulo, e não embute script', () => {
+    const head = html.slice(0, html.indexOf('</head>'))
+    expect(head).toContain('<script src="/tema-inicial.js"></script>')
+    expect(html).not.toMatch(/<script>[sS]*?</script>/)
+  })
+
+  it('com escuro salvo, aplica o escuro como o aplicarTema', () => {
     const { doc, atributos, html: raiz, meta } = documento()
-    new Function('localStorage', 'document', 'matchMedia', script!)(
+    new Function('localStorage', 'document', 'matchMedia', script)(
       memoria({ [CHAVE_TEMA]: 'escuro' }),
       doc,
       () => ({ matches: false }),
@@ -102,7 +108,7 @@ describe('script inline do index.html', () => {
   it('com sistema salvo e o aparelho no claro, fica claro com a theme-color do claro', () => {
     const { doc, atributos, meta } = documento()
     meta.content = ''
-    new Function('localStorage', 'document', 'matchMedia', script!)(memoria({ [CHAVE_TEMA]: 'sistema' }), doc, () => ({ matches: false }))
+    new Function('localStorage', 'document', 'matchMedia', script)(memoria({ [CHAVE_TEMA]: 'sistema' }), doc, () => ({ matches: false }))
     expect(atributos.get('data-tema')).toBe('claro')
     expect(meta.content).toBe(COR_DA_BARRA.claro)
   })
@@ -114,7 +120,7 @@ describe('script inline do index.html', () => {
         throw new Error('SecurityError')
       },
     }
-    expect(() => new Function('localStorage', 'document', 'matchMedia', script!)(quebrado, doc, () => ({ matches: true }))).not.toThrow()
+    expect(() => new Function('localStorage', 'document', 'matchMedia', script)(quebrado, doc, () => ({ matches: true }))).not.toThrow()
     expect(atributos.get('data-tema')).toBe('claro')
   })
 

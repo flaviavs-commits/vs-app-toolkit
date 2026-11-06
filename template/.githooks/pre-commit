@@ -1,3 +1,10 @@
 #!/usr/bin/env sh
 set -eu
-python3 scripts/public_repo_guard.py --staged
+# No Windows, "python3" costuma ser só o atalho da Microsoft Store: usa o primeiro interpretador real.
+for py in python3 python py; do
+  if "$py" -c "import sys" >/dev/null 2>&1; then
+    exec "$py" scripts/public_repo_guard.py --staged
+  fi
+done
+echo "pre-commit: Python nao encontrado (python3, python ou py)" >&2
+exit 1

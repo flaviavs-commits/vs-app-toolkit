@@ -157,3 +157,12 @@ expiração curta e refresh com rotação).
   dependência de produção e o `start` é `prisma db push --skip-generate && node dist/server.js`: não depende da configuração
   da plataforma (o Railway avisa que `railway.json` deixa de valer em 2026-12-01). `db push` recusa mudança que perde dados;
   o deploy falha e avisa em vez de apagar. O `railway.json` fica com `RAILPACK`, `startCommand: npm start` e o healthcheck.
+
+- [2026-11-07] LOGIN ÚNICO NO TEMPLATE. O app gerado já recebe o `?meuecoo_codigo=` do "Abrir" do Meu Ecoo: `POST /api/auth/meu-ecoo`
+  no backend (a chamada ao Meu Ecoo agora é `chamarMeuEcoo`, usada também pelo login por senha, com os mesmos erros) e
+  `src/auth/loginUnico.ts` com o `AuthProvider` no front (tira o código da URL antes de qualquer chamada e o troca antes de
+  restaurar a sessão guardada, uma vez só no StrictMode; a rota fica entre as de login em `api.ts`). Antes o template não tinha
+  o login único (ver "Limites" de 04/11) e os quatro apps de 07/11 saíram sem ele. Testes: 9 no backend
+  (`authController.test.ts`) e 12 no front (`src/auth/loginUnico.test.ts`); no navegador, 20 conferências com o backend
+  simulado (código válido, vencido, token velho guardado, sessão guardada com código ruim, recarregar, sem código). Contrato em
+  `docs/PLUGAR-LOGIN-VS.md`. Só vale para um app depois de o id dele entrar em `MINI_APPS_COM_LOGIN_UNICO` no Meu Ecoo.

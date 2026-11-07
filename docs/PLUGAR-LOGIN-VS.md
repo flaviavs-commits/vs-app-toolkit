@@ -186,6 +186,29 @@ rota no backend. O backend cria a tabela ao subir (`prisma db push` no `start` d
 
 ---
 
+## Login único (`?meuecoo_codigo=`)
+
+O "Abrir" do Meu Ecoo abre o app com um código de uso único na URL e a pessoa entra sem digitar a senha de novo
+(contrato completo: seção B7 de `docs/PARTNER-LOGIN-TOKENS.md` do MeuEcoo). O template já traz os dois lados:
+
+- **Backend** (`authController.ts`): `POST /api/auth/meu-ecoo` com `{ codigo }`. Chama `/api/partner/auth/trocar-codigo`
+  (mesma origem do `PARTNER_AUTH_URL`) com o `X-Service-Token` do app e o `X-Client-IP`, pela mesma função do login por
+  senha (`chamarMeuEcoo`: 403 de conta vira a mensagem da conta, 403 sem `code` vira 502, 429 vira "muitas tentativas" e
+  o 401 é repassado). A sessão sai do e-mail que o Meu Ecoo devolve, nunca do corpo; daí em diante é o caminho do login
+  (membership, espelho do usuário, JWT e refresh token).
+- **Front** (`src/auth/loginUnico.ts` e `AuthProvider`): tira o `meuecoo_codigo` da URL (os outros parâmetros e o hash
+  ficam) antes de qualquer chamada, para o código não ficar no histórico nem voltar num recarregamento, e troca o código
+  **antes** de restaurar a sessão guardada: um token velho não corre contra a troca, e a conta do código vale mais que uma
+  sessão guardada de outra pessoa. A troca roda uma vez só, mesmo no StrictMode (o código vale uma vez). A rota fica entre
+  as de login em `api.ts`: um 401 ali é código recusado, não sessão expirada.
+- **Se falhar** (código vencido, já usado, Meu Ecoo fora do ar): a tela de login mostra "Não foi possível entrar direto pelo
+  Meu Ecoo. Entre com e-mail e senha."; se a pessoa já tinha uma sessão guardada, entra por ela, sem aviso.
+- **Para um app ter o login único:** acrescentar o id a `MINI_APPS_COM_LOGIN_UNICO` (`backend/src/auth/codigoDeMiniApp.ts`
+  do Meu Ecoo) e publicar. O código só vale para o app que o pediu, e quem diz qual é o token próprio dele
+  (`PARTNER_AUTH_SERVICE_TOKEN`). Fora da lista, o "Abrir" segue o link normal, sem código.
+
+---
+
 ## Armadilhas conhecidas (já resolvidas no módulo)
 
 - **`PARTNER_AUTH_URL` é o backend Django** (`vs-production-c4dd...`), **NÃO** `www.fcvip.com.br`

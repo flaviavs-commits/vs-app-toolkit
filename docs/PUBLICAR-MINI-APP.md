@@ -139,6 +139,8 @@ Só depois do passo 5 funcionando, para não mostrar cartão de app que não ent
    coordenadas da tela em `stage.screen` (mesmo quadro 4:3 dos três apps atuais).
 3. Traduções: descrição e grupo nos quatro catálogos de `src/lib/i18n/catalogs/` (os nomes dos Mini Apps
    ficam em português).
-4. Os apps novos **não têm** o login único (`?meuecoo_codigo=`) do template antigo: o "Abrir" leva à tela
-   de entrada deles. Para ter, copie o módulo dos três Mini Apps e acrescente o app a
-   `MINI_APPS_COM_LOGIN_UNICO` (`backend/src/auth/codigoDeMiniApp.ts` do Meu Ecoo).
+4. Login único (`?meuecoo_codigo=`): o template já traz a troca do código (`src/auth/loginUnico.ts` e
+   `POST /api/auth/meu-ecoo`, ver `docs/PLUGAR-LOGIN-VS.md`). Falta acrescentar o app a
+   `MINI_APPS_COM_LOGIN_UNICO` (`backend/src/auth/codigoDeMiniApp.ts` do Meu Ecoo); sem isso o "Abrir" leva à
+   tela de entrada do app. (Meu Foco, Comunicação Clara, Minha Carreira e Meu Sono, gerados antes de 07/11/2026,
+   receberam a troca em seguida, por cópia dos mesmos arquivos.)

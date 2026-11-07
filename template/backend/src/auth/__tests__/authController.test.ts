@@ -12,7 +12,7 @@ vi.mock('../../lib/prisma.js', () => ({
   },
 }))
 
-const { login, loginGoogle, getMe } = await import('../authController.js')
+const { login, loginGoogle, loginComCodigoDoMeuEcoo, getMe } = await import('../authController.js')
 
 // Requisição de login como o Express a entrega: corpo e o endereço da conexão (de onde sai o IP do cliente).
 const reqDe = (body: unknown, extras: Record<string, unknown> = {}) =>
@@ -302,5 +302,129 @@ describe('X-Client-IP e refresh token nos logins', () => {
       refreshToken: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
       user: { id: 'u1', email: 'maria@b.com', nome: 'Maria', isMember: true, memberUntil: null },
     })
+  })
+})
+
+/**
+ * Login único (B7 do Meu Ecoo): o "Abrir" do Meu Ecoo leva um código de uso único para este app na URL
+ * (`?meuecoo_codigo=`), o front o manda para cá e o servidor o troca por sessão no Meu Ecoo, com o token de
+ * serviço do app. Daí em diante é o caminho do login de parceiro: membership, espelho do usuário, JWT e refresh token.
+ */
+describe('loginComCodigoDoMeuEcoo (POST /api/auth/meu-ecoo)', () => {
+  const USUARIO = { id: 'u1', email: 'maria@b.com', nome: 'Maria', isMember: true, memberUntil: null }
+  const SESSAO = {
+    data: {
+      tokens: { access: 'vs-access' },
+      user: { email: 'Maria@B.com', name: 'Maria', is_member_active: true, member_until: '2030-01-01' },
+    },
+  }
+  const chamada = () =>
+    (global.fetch as ReturnType<typeof vi.fn>).mock.calls[0] as [URL, { method: string; body: string; headers: Record<string, string> }]
+
+  beforeEach(() => {
+    process.env.PARTNER_AUTH_SERVICE_TOKEN = 'token-de-servico'
+    delete process.env.RAILWAY_ENVIRONMENT_ID
+    upsert.mockResolvedValue(USUARIO)
+  })
+
+  it('valida entrada: 400 sem código, vazio, que não é texto ou grande demais, sem chamar o Meu Ecoo', async () => {
+    global.fetch = vi.fn() as unknown as typeof fetch
+    for (const corpo of [undefined, {}, { codigo: '   ' }, { codigo: 42 }, { codigo: 'x'.repeat(201) }]) {
+      const res = mockRes()
+      await loginComCodigoDoMeuEcoo(reqDe(corpo), res)
+      expect(res.status).toHaveBeenCalledWith(400)
+    }
+    expect(global.fetch).not.toHaveBeenCalled()
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('troca o código no Meu Ecoo com o token de serviço e o IP, e abre a sessão do e-mail que ele devolve', async () => {
+    global.fetch = mockFetchOnce(true, 200, SESSAO) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: '  c0d1g0  ' }), res)
+
+    const [url, init] = chamada()
+    expect(String(url)).toBe('https://vs.example/api/partner/auth/trocar-codigo')
+    expect(init.method).toBe('POST')
+    expect(JSON.parse(init.body)).toEqual({ codigo: 'c0d1g0' })
+    expect(init.headers['X-Service-Token']).toBe('token-de-servico')
+    expect(init.headers['X-Client-IP']).toBe('203.0.113.9')
+
+    // O e-mail vem do Meu Ecoo (em minúsculas): o app não recebe e-mail nenhum no corpo.
+    expect(upsert).toHaveBeenCalledWith(expect.objectContaining({ where: { email: 'maria@b.com' } }))
+    expect(res.json).toHaveBeenCalledWith({
+      token: expect.any(String),
+      refreshToken: expect.stringMatching(/^[A-Za-z0-9_-]{43}$/),
+      user: { id: 'u1', email: 'maria@b.com', nome: 'Maria', isMember: true, memberUntil: null },
+    })
+  })
+
+  it('código inválido ou expirado: repassa o 401 do Meu Ecoo e não abre sessão', async () => {
+    global.fetch = mockFetchOnce(false, 401, { error: 'Código inválido ou expirado.' }) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'velho' }), res)
+
+    expect(res.status).toHaveBeenCalledWith(401)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Código inválido ou expirado.' })
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('sem mensagem do Meu Ecoo, o 401 leva a frase padrão do código', async () => {
+    global.fetch = mockFetchOnce(false, 401, {}) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'velho' }), res)
+
+    expect(res.json).toHaveBeenCalledWith({ error: 'Código inválido ou expirado.' })
+  })
+
+  it('conta desativada ou sem e-mail confirmado: 403 com a mensagem da conta', async () => {
+    for (const [code, mensagem] of [
+      ['CONTA_DESATIVADA', 'Conta desativada. Fale com o suporte.'],
+      ['CONTA_NAO_VERIFICADA', 'Confirme seu e-mail para entrar. Use o link que enviamos quando você criou a conta.'],
+    ]) {
+      global.fetch = mockFetchOnce(false, 403, { error: 'texto do provedor', code }) as unknown as typeof fetch
+      const res = mockRes()
+      await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'c0d1g0' }), res)
+      expect(res.status).toHaveBeenCalledWith(403)
+      expect(res.json).toHaveBeenCalledWith({ error: mensagem })
+    }
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('403 sem code (token de serviço recusado) vira erro de configuração (502), sem vazar a causa', async () => {
+    global.fetch = mockFetchOnce(false, 403, { error: 'Serviço não autorizado.' }) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'c0d1g0' }), res)
+
+    expect(res.status).toHaveBeenCalledWith(502)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Erro de configuração do serviço. Contate o suporte.' })
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('429 do Meu Ecoo vira "muitas tentativas"', async () => {
+    global.fetch = mockFetchOnce(false, 429, { error: 'Muitas tentativas.' }) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'c0d1g0' }), res)
+
+    expect(res.status).toHaveBeenCalledWith(429)
+    expect(res.json).toHaveBeenCalledWith({ error: 'Muitas tentativas. Aguarde alguns minutos.' })
+  })
+
+  it('Meu Ecoo fora do ar (fetch falha): 502', async () => {
+    global.fetch = vi.fn().mockRejectedValueOnce(new Error('network')) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'c0d1g0' }), res)
+
+    expect(res.status).toHaveBeenCalledWith(502)
+    expect(upsert).not.toHaveBeenCalled()
+  })
+
+  it('resposta sem e-mail: 502 e nada é gravado', async () => {
+    global.fetch = mockFetchOnce(true, 200, { data: { user: { name: 'Sem Email' } } }) as unknown as typeof fetch
+    const res = mockRes()
+    await loginComCodigoDoMeuEcoo(reqDe({ codigo: 'c0d1g0' }), res)
+
+    expect(res.status).toHaveBeenCalledWith(502)
+    expect(upsert).not.toHaveBeenCalled()
   })
 })

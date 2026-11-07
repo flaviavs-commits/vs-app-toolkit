@@ -3,6 +3,7 @@ import {
   useContext,
   useState,
   useEffect,
+  useRef,
   type ReactNode,
 } from 'react'
 import * as api from './api'
@@ -15,6 +16,7 @@ import {
   sessaoRecusada,
   type AuthUser,
 } from './api'
+import { MEUECOO_FALHOU, entrarPeloMeuEcoo, temCodigoDoMeuEcoo } from './loginUnico'
 
 interface AuthContextValue {
   // Estado de sessão
@@ -46,8 +48,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [token, setToken] = useState<string | null>(tokenGuardado)
   const [user, setUser] = useState<AuthUser | null>(null)
   const [isLoading, setIsLoading] = useState(false)
-  const [isBootstrapping, setIsBootstrapping] = useState(() => !!tokenGuardado())
+  const [isBootstrapping, setIsBootstrapping] = useState(() => !!tokenGuardado() || temCodigoDoMeuEcoo())
   const [error, setError] = useState<string | null>(null)
+  // Chegando do "Abrir" do Meu Ecoo (?meuecoo_codigo=), a sessão guardada só é restaurada depois da troca
+  // do código (ou se ela falhar): assim um token velho não corre contra a troca.
+  const [codigoPendente, setCodigoPendente] = useState(temCodigoDoMeuEcoo)
+  // O StrictMode (desenvolvimento) monta o provider duas vezes e o código é de uso único: a troca roda
+  // uma vez só, e a segunda montagem reaproveita a mesma promessa.
+  const troca = useRef<ReturnType<typeof entrarPeloMeuEcoo> | null>(null)
 
   const isLoggedIn = !!token && !!user
   const isMember = user?.isMember ?? false
@@ -55,17 +63,45 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Renovação da sessão (api.ts): o usuário volta atualizado (assinatura, nome) ──
   useEffect(() => aoRenovarSessao(setUser), [])
 
+  // ── Login único: troca o código do Meu Ecoo por sessão (loginUnico.ts) ───────
+  // Deu certo: entra como a conta do Meu Ecoo (mesmo havendo outra sessão guardada). Não deu certo
+  // (vencido, já usado, Meu Ecoo fora do ar): segue o caminho de sempre, com o aviso na tela de login.
+  useEffect(() => {
+    if (!codigoPendente) return undefined
+    let ativo = true
+    troca.current ??= entrarPeloMeuEcoo()
+    void troca.current.then((entrada) => {
+      if (!ativo) return
+      if (entrada && 'sessao' in entrada) {
+        guardarSessao(entrada.sessao)
+        setToken(entrada.sessao.token)
+        setUser(entrada.sessao.user)
+      } else if (entrada) {
+        setError(MEUECOO_FALHOU)
+      }
+      setCodigoPendente(false)
+    })
+    return () => {
+      ativo = false
+    }
+  }, [codigoPendente])
+
   // ── Bootstrap: restaura a sessão via /auth/me ───────────────────────────────
   // Usa /auth/me (liberado a qualquer logado) — assim um não-membro também
   // restaura a sessão e cai no MembershipGate, em vez de ser deslogado em loop.
   useEffect(() => {
+    if (codigoPendente) return
     if (!token) {
       setIsBootstrapping(false)
       return
     }
     api
       .getMe()
-      .then(({ data }) => setUser(data))
+      .then(({ data }) => {
+        setUser(data)
+        // Entrou pela sessão guardada: o aviso de uma troca de código que falhou não vale mais.
+        setError(null)
+      })
       .catch((err: unknown) => {
         // Só a conta sem acesso encerra aqui. O 401 o interceptor já tratou (renovou, ou
         // encerrou e recarregou); rede caída e 5xx não derrubam a sessão guardada.
@@ -75,7 +111,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
       })
       .finally(() => setIsBootstrapping(false))
-  }, [token])
+  }, [token, codigoPendente])
 
   // Aplica a sessão após um login bem-sucedido (email/senha ou Google).
   async function runLogin(
@@ -135,6 +171,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     sairDaSessao()
     setToken(null)
     setUser(null)
+    setError(null)
   }
 
   return (

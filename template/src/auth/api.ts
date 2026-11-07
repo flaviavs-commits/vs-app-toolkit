@@ -25,9 +25,10 @@ api.interceptors.request.use((config) => {
 
 const ROTA_LOGIN = '/api/auth/login'
 const ROTA_GOOGLE = '/api/auth/google'
+const ROTA_MEU_ECOO = '/api/auth/meu-ecoo'
 const ROTA_REFRESH = '/api/auth/refresh'
 const ROTA_LOGOUT = '/api/auth/logout'
-const ROTAS_DE_LOGIN = [ROTA_LOGIN, ROTA_GOOGLE]
+const ROTAS_DE_LOGIN = [ROTA_LOGIN, ROTA_GOOGLE, ROTA_MEU_ECOO]
 const ROTAS_SEM_RENOVACAO = [...ROTAS_DE_LOGIN, ROTA_REFRESH, ROTA_LOGOUT]
 
 // Quem escuta a renovação recebe o usuário atualizado (assinatura, nome).
@@ -176,6 +177,10 @@ export const loginUser = (email: string, password: string) =>
 
 export const loginWithGoogle = (idToken: string) =>
   api.post<LoginResponse>(ROTA_GOOGLE, { idToken })
+
+// Login único: troca o código de uso único que o "Abrir" do Meu Ecoo levou na URL (ver loginUnico.ts).
+export const loginComMeuEcoo = (codigo: string) =>
+  api.post<LoginResponse>(ROTA_MEU_ECOO, { codigo })
 
 export const getMe = () => api.get<AuthUser>('/api/auth/me')
 

@@ -151,6 +151,57 @@ async function abrirSessao(res: Response, partner: PartnerFields, email: string)
   res.json({ token, refreshToken, user: serializeUser(user) })
 }
 
+// Chama uma rota de parceiro do Meu Ecoo com o token de serviço deste app (login por senha, troca do
+// código do login único) e traduz a recusa para a resposta do app. Devolve o corpo quando o Meu Ecoo
+// aceitou; senão já respondeu o erro e devolve null.
+async function chamarMeuEcoo(
+  req: Request,
+  res: Response,
+  url: string | URL,
+  corpo: object,
+  mensagemPadrao: string,
+): Promise<any | null> {
+  try {
+    const raw = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-Service-Token': process.env.PARTNER_AUTH_SERVICE_TOKEN as string,
+        ...cabecalhoDoIp(req),
+      },
+      body: JSON.stringify(corpo),
+      signal: AbortSignal.timeout(8000),
+    })
+
+    if (!raw.ok) {
+      const body: any = await raw.json().catch(() => ({}))
+      if (raw.status === 403) {
+        // Conta que não pode entrar → 403 com a mensagem da conta. Qualquer outro 403 (token de
+        // serviço recusado, ou um provedor antigo sem `code`) é erro de configuração nosso → 502.
+        const conta = mensagemDeConta(body)
+        if (conta) res.status(403).json({ error: conta })
+        else res.status(502).json({ error: MENSAGEM_DE_CONFIGURACAO })
+        return null
+      }
+      if (raw.status === 429) {
+        res.status(429).json({ error: MUITAS_TENTATIVAS })
+        return null
+      }
+      // O Meu Ecoo manda a mensagem em `error`; `detail` e `message` são do contrato do VS.
+      res.status(raw.status).json({ error: body.error || body.detail || body.message || mensagemPadrao })
+      return null
+    }
+
+    return await raw.json()
+  } catch (err) {
+    console.error('[VS] auth error:', (err as Error).message)
+    res.status(502).json({
+      error: 'Serviço de autenticação indisponível. Tente novamente.',
+    })
+    return null
+  }
+}
+
 // ── POST /api/auth/login ──────────────────────────────────────────────────────
 // Login email+senha. Proxy server-to-server para o VS (parceiro interno) com o
 // X-Service-Token. Se o VS aceitar → upsert local + emite nosso JWT.
@@ -161,43 +212,41 @@ export async function login(req: Request, res: Response) {
     return res.status(400).json({ error: 'Email e senha são obrigatórios' })
   }
 
-  let partnerResponse: any
-  try {
-    const raw = await fetch(process.env.PARTNER_AUTH_URL as string, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Service-Token': process.env.PARTNER_AUTH_SERVICE_TOKEN as string,
-        ...cabecalhoDoIp(req),
-      },
-      body: JSON.stringify({ email, password }),
-      signal: AbortSignal.timeout(8000),
-    })
-
-    if (!raw.ok) {
-      const body: any = await raw.json().catch(() => ({}))
-      if (raw.status === 403) {
-        // Conta que não pode entrar → 403 com a mensagem da conta. Qualquer outro 403 (token de
-        // serviço recusado, ou um provedor antigo sem `code`) é erro de configuração nosso → 502.
-        const conta = mensagemDeConta(body)
-        if (conta) return res.status(403).json({ error: conta })
-        return res.status(502).json({ error: MENSAGEM_DE_CONFIGURACAO })
-      }
-      if (raw.status === 429) return res.status(429).json({ error: MUITAS_TENTATIVAS })
-      // O Meu Ecoo manda a mensagem em `error`; `detail` e `message` são do contrato do VS.
-      const message = body.error || body.detail || body.message || 'Credenciais inválidas'
-      return res.status(raw.status).json({ error: message })
-    }
-
-    partnerResponse = await raw.json()
-  } catch (err) {
-    console.error('[VS] auth error:', (err as Error).message)
-    return res.status(502).json({
-      error: 'Serviço de autenticação indisponível. Tente novamente.',
-    })
-  }
+  const partnerResponse = await chamarMeuEcoo(
+    req,
+    res,
+    process.env.PARTNER_AUTH_URL as string,
+    { email, password },
+    'Credenciais inválidas',
+  )
+  if (!partnerResponse) return
 
   await abrirSessao(res, extractPartnerFields(partnerResponse), email.toLowerCase())
+}
+
+// ── POST /api/auth/meu-ecoo ───────────────────────────────────────────────────
+// Login único (B7 do Meu Ecoo): o "Abrir" do Meu Ecoo leva um código de uso único para este app na
+// URL (`?meuecoo_codigo=`) e o front o manda para cá. O servidor o troca por sessão no Meu Ecoo
+// (POST /api/partner/auth/trocar-codigo), com o token de serviço do app: o código só vale uma vez,
+// por pouco tempo e só para o app que o pediu. A resposta tem o formato do login de parceiro, então
+// daí em diante é o mesmo caminho (membership, espelho do usuário, JWT e refresh token). O e-mail
+// vem do Meu Ecoo, nunca do corpo.
+export async function loginComCodigoDoMeuEcoo(req: Request, res: Response) {
+  const codigo = typeof req.body?.codigo === 'string' ? req.body.codigo.trim() : ''
+  if (!codigo || codigo.length > 200) {
+    return res.status(400).json({ error: 'Código é obrigatório' })
+  }
+
+  const url = new URL('/api/partner/auth/trocar-codigo', process.env.PARTNER_AUTH_URL)
+  const partnerResponse = await chamarMeuEcoo(req, res, url, { codigo }, 'Código inválido ou expirado.')
+  if (!partnerResponse) return
+
+  const partner = extractPartnerFields(partnerResponse)
+  if (!partner.email) {
+    return res.status(502).json({ error: 'Resposta de autenticação inválida.' })
+  }
+
+  await abrirSessao(res, partner, partner.email)
 }
 
 // ── POST /api/auth/google ─────────────────────────────────────────────────────

@@ -32,6 +32,8 @@ A base de auth foi extraída do app `financeiro` (validada em produção) e conv
 ```
 vs-app-toolkit/
 ├── create-vs-app.py     # gerador interativo
+├── scripts/
+│   └── verificar-producao.cjs   # confere um app no ar: CSP, CORS, tema, abas
 ├── template/            # esqueleto de um app VS (React+TS / Express+Prisma)
 │   ├── src/auth/        # 🔐 módulo de auth frontend (copiável)
 │   ├── backend/src/auth/# 🔐 módulo de auth backend (copiável)

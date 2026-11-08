@@ -12,3 +12,11 @@ __pycache__/
 /_test-*/
 /test-app/
 /Padrão de qualidade - Felixo System Design
+
+# Dependências, builds e segredos (o template, quando se roda npm nele, não deve entrar aqui)
+node_modules/
+dist/
+.env
+.env.*
+!.env.example
+*.log

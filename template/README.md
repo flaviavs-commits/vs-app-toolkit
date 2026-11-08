@@ -100,6 +100,12 @@ negócio críticas, escreva o teste junto (ver roteiro de verificação manual e
 - **Gate:** o frontend mostra `MembershipGate` para não-membros; o backend bloqueia rotas com
   `requireMember` (403). A **fonte de verdade do membership é o VS** (admin / painel / Betalabs).
 
+## Versionamento (git)
+
+Commits pequenos direto no `main`, no formato `tipo(escopo): descrição` em português, com a documentação e o `IA.md`
+no mesmo push; branch só para feature grande, refatoração significativa ou alto risco, e apagada depois de entrar.
+Regras, tipos e o que confere sozinho: [`docs/VERSIONAMENTO.md`](docs/VERSIONAMENTO.md). Depois de clonar, rode `npm install`: ele instala o hook `commit-msg`.
+
 ## 📝 Licença
 
 Software proprietario da Vitis Souls — todos os direitos reservados. Veja [LICENSE](LICENSE).

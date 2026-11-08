@@ -112,7 +112,7 @@ Front e API saem com os cabeçalhos do guia de segurança do ecossistema (seçã
   pelo domínio real do backend Railway. Todo destino novo (outra API, imagem de fora, vídeo, fonte) precisa
   entrar na diretiva certa do `vercel.json`, senão o navegador bloqueia.
 - **Sem curinga, sem `unsafe-eval`, sem `unsafe-inline` em script.** Se o app ganhar um `<script>` embutido
-  no `index.html`, libere-o com o hash `sha256-` do conteúdo (e um teste que recalcule o hash), não com `unsafe-inline`.
+  no `index.html`, libere-o com o hash `sha256-` do conteúdo (e um teste que recalcule o hash), não com `unsafe-inline`. No teste, troque `\r\n` por `\n` antes de calcular o hash: o checkout no Windows põe CRLF no arquivo, mas a Vercel compila no Linux e o navegador mede LF (o teste dos Mini Apps falhou no Windows por isso em 06/11/2026).
 - **Nunca ponha `Cross-Origin-Opener-Policy: same-origin`** (nem o `helmet()` com os padrões): ele quebra o popup do
   login com Google do Firebase.
 - **Violações vão para o log da API do Meu Ecoo.** O `report-uri` aponta para `POST /api/csp-report` (coletor

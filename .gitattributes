@@ -1,0 +1,17 @@
+# Quebra de linha LF em todo arquivo de texto, em qualquer sistema operacional (docs/VERSIONAMENTO.md).
+# Sem isto, um clone no Windows com core.autocrlf troca para CRLF na cópia de trabalho, e o que é
+# calculado sobre o arquivo local (ex.: os hashes de script inline da CSP no vercel.json) deixa de
+# bater com o que o git e a Vercel publicam.
+* text=auto eol=lf
+
+# Binários: nunca converter.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.mp4 binary
+*.pdf binary
+*.woff binary
+*.woff2 binary

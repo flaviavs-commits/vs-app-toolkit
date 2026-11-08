@@ -1,0 +1,5 @@
+#!/bin/sh
+# Confere o formato da mensagem (docs/VERSIONAMENTO.md). Instalado pelo npm install
+# (scripts/git/instalar-hooks.cjs) ou, onde não há npm, por `git config core.hooksPath .githooks`;
+# para pular uma vez, use git commit --no-verify.
+exec node "$(git rev-parse --show-toplevel)/scripts/git/validar-commit.cjs" "$1"

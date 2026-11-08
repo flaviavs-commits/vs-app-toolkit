@@ -1,0 +1,36 @@
+# Política de versionamento (docs/VERSIONAMENTO.md): confere o formato das mensagens dos commits novos.
+# Só avisa (decisão de 08/11/2026): uma mensagem fora do formato aparece como X neste job, mas ele não
+# deixa a CI vermelha nem trava a publicação. Para virar bloqueio, tire o `continue-on-error`.
+name: Commits
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  commits:
+    runs-on: ubuntu-24.04
+    continue-on-error: true
+    steps:
+      - name: Baixar código com o histórico
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Testar o validador
+        run: node --test scripts/git/validar-commit-test.cjs
+
+      - name: Conferir o formato dos commits
+        env:
+          ANTES: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          DEPOIS: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+        run: |
+          if [ -z "$ANTES" ] || [ "$ANTES" = "0000000000000000000000000000000000000000" ] || ! git cat-file -e "$ANTES^{commit}" 2>/dev/null; then
+            echo "Sem um commit anterior conhecido (branch nova ou push forçado): nada a conferir."
+            exit 0
+          fi
+          node scripts/git/validar-commit.cjs --intervalo "$ANTES..$DEPOIS"

@@ -97,6 +97,12 @@ auth a um app que já existe (ex.: quando ele chega na fase de área de membros)
 - **Regra:** a **fonte de verdade do membership é o VS** (admin / painel manual / Betalabs). O app
   só consome o `is_member` que o VS devolve.
 
+## Versionamento (git)
+
+Commits pequenos direto no `main`, no formato `tipo(escopo): descrição` em português, com a documentação e o `IA.md`
+no mesmo push; branch só para feature grande, refatoração significativa ou alto risco, e apagada depois de entrar.
+Regras, tipos e o que confere sozinho: [`docs/VERSIONAMENTO.md`](docs/VERSIONAMENTO.md). Depois de clonar, rode `git config core.hooksPath .githooks` (precisa do Node) para ligar o hook `commit-msg`.
+
 ## 📝 Licença
 
 Software proprietario da Vitis Souls — todos os direitos reservados. Veja [LICENSE](LICENSE).

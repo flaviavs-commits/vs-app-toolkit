@@ -252,3 +252,49 @@ describe("login único com a sessão de outra pessoa aberta no aparelho", () => 
     expect(tela.aviso).toBeNull();
   });
 });
+
+/**
+ * O backend do app só responde 403 na troca do código quando a conta não pode entrar (desativada,
+ * e-mail não confirmado), com o motivo em `error`; token de serviço recusado vira 502. Esse motivo vai
+ * para a tela de entrar no lugar do aviso genérico (decisão de 11/11/2026).
+ */
+describe("login único recusado por causa da conta", () => {
+  const DESATIVADA = { status: 403, data: { error: "Conta desativada. Fale com o suporte." } };
+
+  it("403 com a mensagem e nenhuma sessão guardada: a tela de entrar mostra a mensagem do backend", async () => {
+    trocaDoCodigo = DESATIVADA;
+
+    await abrirApp("https://app.exemplo/?meuecoo_codigo=c0d1g0");
+
+    expect(tela.auth.isLoggedIn).toBe(false);
+    expect(tela.auth.error).toBe("Conta desativada. Fale com o suporte.");
+    expect(tela.aviso).toBeNull();
+  });
+
+  it.each([
+    ["401 (código vencido ou já usado)", { status: 401, data: { error: "Código inválido ou expirado." } }],
+    ["429 (muitas tentativas)", { status: 429, data: { error: "Muitas tentativas. Aguarde alguns minutos." } }],
+    ["502 (Meu Ecoo fora ou token de serviço recusado)", { status: 502, data: { error: "Erro de configuração do serviço. Contate o suporte." } }],
+    ["403 sem mensagem", { status: 403, data: {} }],
+    ["403 com a mensagem em branco", { status: 403, data: { error: "  " } }],
+  ])("%s: a tela de entrar mostra o aviso de sempre", async (_caso, resposta) => {
+    trocaDoCodigo = resposta;
+
+    await abrirApp("https://app.exemplo/?meuecoo_codigo=c0d1g0");
+
+    expect(tela.auth.isLoggedIn).toBe(false);
+    expect(tela.auth.error).toBe(MEUECOO_FALHOU);
+  });
+
+  it("403 com a sessão guardada: entra nela e continua mostrando o aviso de conta", async () => {
+    guardarSessaoDa(ANA);
+    trocaDoCodigo = DESATIVADA;
+
+    await abrirApp("https://app.exemplo/?meuecoo_codigo=c0d1g0");
+
+    expect(tela.auth.user?.email).toBe("ana@exemplo.com");
+    expect(renderToStaticMarkup(tela.aviso as ReactElement)).toContain(
+      "Não foi possível entrar direto pelo Meu Ecoo. Você está na conta ana@exemplo.com, que já estava aberta neste aparelho.",
+    );
+  });
+});

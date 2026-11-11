@@ -34,8 +34,9 @@ export function tirarCodigoDaUrl(): string | null {
   return codigo
 }
 
-/** null: não havia código; `sessao`: o backend aceitou; `falhou`: havia código e ele não valeu. */
-export type EntradaPeloMeuEcoo = { sessao: LoginResponse } | { falhou: true } | null
+/** null: não havia código; `sessao`: o backend aceitou; `falhou`: havia código e ele não valeu
+ *  (`mensagem`: o motivo, quando foi a conta que não pode entrar). */
+export type EntradaPeloMeuEcoo = { sessao: LoginResponse } | { falhou: true; mensagem?: string } | null
 
 /** Tira o código da URL e o troca por sessão. Não guarda a sessão: quem decide é o AuthProvider.
  *  O 401 desta rota é código recusado, não sessão expirada (api.ts a deixa fora da renovação). */
@@ -45,7 +46,11 @@ export async function entrarPeloMeuEcoo(): Promise<EntradaPeloMeuEcoo> {
   try {
     const { data } = await loginComMeuEcoo(codigo)
     return { sessao: data }
-  } catch {
-    return { falhou: true }
+  } catch (err) {
+    // O backend só responde 403 aqui quando a conta não pode entrar (desativada, e-mail não
+    // confirmado), com o motivo em `error`; o resto (código vencido, Meu Ecoo fora) fica no aviso geral.
+    const resposta = (err as { response?: { status?: number; data?: { error?: unknown } } }).response
+    const mensagem = resposta?.status === 403 ? resposta.data?.error : undefined
+    return typeof mensagem === 'string' && mensagem.trim() ? { falhou: true, mensagem } : { falhou: true }
   }
 }

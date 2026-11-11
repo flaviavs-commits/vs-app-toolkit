@@ -73,7 +73,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   // ── Login único: troca o código do Meu Ecoo por sessão (loginUnico.ts) ───────
   // Deu certo: entra como a conta do Meu Ecoo (mesmo havendo outra sessão guardada). Não deu certo
   // (vencido, já usado, Meu Ecoo fora do ar): segue o caminho de sempre, com o aviso na tela de login
-  // ou, se entrar pela sessão guardada, o aviso de conta dentro do app.
+  // (ou o motivo, se a conta não pode entrar) ou, se entrar pela sessão guardada, o aviso de conta dentro do app.
   useEffect(() => {
     if (!codigoPendente) return undefined
     let ativo = true
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setToken(entrada.sessao.token)
         setUser(entrada.sessao.user)
       } else if (entrada) {
-        setError(MEUECOO_FALHOU)
+        setError(entrada.mensagem ?? MEUECOO_FALHOU)
         setTrocaFalhou(true)
       }
       setCodigoPendente(false)

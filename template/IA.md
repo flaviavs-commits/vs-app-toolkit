@@ -176,3 +176,10 @@ expiração curta e refresh com rotação).
   Arquivos: `src/auth/AvisoContaAberta.tsx` (novo), `src/auth/AuthContext.tsx`, `src/auth/loginUnico.ts`, `src/App.tsx`;
   testes em `src/auth/avisoContaAberta.test.tsx` (o `AuthProvider` de verdade, sem DOM). Detalhes em `docs/PLUGAR-LOGIN-VS.md`
   do toolkit.
+
+- [2026-11-11] MOTIVO DA RECUSA NO LOGIN ÚNICO. Se a troca do código falha com **403 e `error`** (o backend só responde 403
+  ali quando a conta não pode entrar: desativada ou com o e-mail não confirmado), a tela de entrar mostra essa mensagem no
+  lugar de "Não foi possível entrar direto pelo Meu Ecoo. Entre com e-mail e senha."; 401, 429, 502, rede e 403 sem mensagem
+  seguem com o aviso geral. O aviso de conta (sessão guardada) não mudou. Arquivos: `src/auth/loginUnico.ts`
+  (`entrarPeloMeuEcoo` devolve `{ falhou: true, mensagem }`) e `src/auth/AuthContext.tsx`; testes em
+  `src/auth/avisoContaAberta.test.tsx`. Detalhes em `docs/PLUGAR-LOGIN-VS.md` do toolkit.

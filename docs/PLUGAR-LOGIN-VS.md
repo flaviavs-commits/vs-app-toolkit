@@ -202,7 +202,10 @@ O "Abrir" do Meu Ecoo abre o app com um código de uso único na URL e a pessoa 
   sessão guardada de outra pessoa. A troca roda uma vez só, mesmo no StrictMode (o código vale uma vez). A rota fica entre
   as de login em `api.ts`: um 401 ali é código recusado, não sessão expirada.
 - **Se falhar** (código vencido, já usado, Meu Ecoo fora do ar) e não houver sessão guardada válida: a tela de login mostra
-  "Não foi possível entrar direto pelo Meu Ecoo. Entre com e-mail e senha.".
+  "Não foi possível entrar direto pelo Meu Ecoo. Entre com e-mail e senha.". Se a falha for um **403 com `error`** (a conta
+  não pode entrar: desativada ou com o e-mail não confirmado), a tela mostra essa mensagem do backend no lugar do aviso
+  geral (`entrarPeloMeuEcoo` devolve `{ falhou: true, mensagem }`); 401, 429, 502, rede ou 403 sem mensagem seguem com o
+  aviso geral.
 - **Se falhar e houver sessão guardada** (num aparelho compartilhado, pode ser de outra pessoa): o app entra por ela e mostra,
   no topo de toda tela logada (inclusive a de acesso restrito), "Não foi possível entrar direto pelo Meu Ecoo. Você está na
   conta {e-mail}, que já estava aberta neste aparelho." (sem e-mail, o nome; sem os dois, "…na conta que já estava aberta…"),

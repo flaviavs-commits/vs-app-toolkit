@@ -90,7 +90,7 @@ describe('script do tema antes da pintura (public/tema-inicial.js)', () => {
   it('o index.html carrega o arquivo no <head>, sem módulo, e não embute script', () => {
     const head = html.slice(0, html.indexOf('</head>'))
     expect(head).toContain('<script src="/tema-inicial.js"></script>')
-    expect(html).not.toMatch(/<script>[sS]*?</script>/)
+    expect(html).not.toMatch(/<script>[\s\S]*?<\/script>/)
   })
 
   it('com escuro salvo, aplica o escuro como o aplicarTema', () => {

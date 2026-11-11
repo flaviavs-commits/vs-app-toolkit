@@ -166,3 +166,13 @@ expiração curta e refresh com rotação).
   (`authController.test.ts`) e 12 no front (`src/auth/loginUnico.test.ts`); no navegador, 20 conferências com o backend
   simulado (código válido, vencido, token velho guardado, sessão guardada com código ruim, recarregar, sem código). Contrato em
   `docs/PLUGAR-LOGIN-VS.md`. Só vale para um app depois de o id dele entrar em `MINI_APPS_COM_LOGIN_UNICO` no Meu Ecoo.
+
+- [2026-11-11] AVISO DE CONTA NO LOGIN ÚNICO QUE FALHA. Se o código do "Abrir" falhava (vencido, já usado, Meu Ecoo fora) e
+  havia sessão guardada, o app entrava nela **sem aviso** (o aviso só existia na tela de login, que ninguém via): num aparelho
+  compartilhado, quem clicou "Abrir" caía na conta de outra pessoa. Decisão da dona (opção A): o app continua entrando pela
+  sessão guardada, mas mostra no topo de toda tela logada (inclusive a de acesso restrito) "Não foi possível entrar direto pelo
+  Meu Ecoo. Você está na conta {e-mail}, que já estava aberta neste aparelho." com "Sair e entrar com a minha conta" (o
+  `logout` de sempre) e "Continuar nesta conta" (só esconde). Só em memória; sem código, ou com a troca certa, nada muda.
+  Arquivos: `src/auth/AvisoContaAberta.tsx` (novo), `src/auth/AuthContext.tsx`, `src/auth/loginUnico.ts`, `src/App.tsx`;
+  testes em `src/auth/avisoContaAberta.test.tsx` (o `AuthProvider` de verdade, sem DOM). Detalhes em `docs/PLUGAR-LOGIN-VS.md`
+  do toolkit.

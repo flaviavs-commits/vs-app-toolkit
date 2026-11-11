@@ -201,8 +201,15 @@ O "Abrir" do Meu Ecoo abre o app com um código de uso único na URL e a pessoa 
   **antes** de restaurar a sessão guardada: um token velho não corre contra a troca, e a conta do código vale mais que uma
   sessão guardada de outra pessoa. A troca roda uma vez só, mesmo no StrictMode (o código vale uma vez). A rota fica entre
   as de login em `api.ts`: um 401 ali é código recusado, não sessão expirada.
-- **Se falhar** (código vencido, já usado, Meu Ecoo fora do ar): a tela de login mostra "Não foi possível entrar direto pelo
-  Meu Ecoo. Entre com e-mail e senha."; se a pessoa já tinha uma sessão guardada, entra por ela, sem aviso.
+- **Se falhar** (código vencido, já usado, Meu Ecoo fora do ar) e não houver sessão guardada válida: a tela de login mostra
+  "Não foi possível entrar direto pelo Meu Ecoo. Entre com e-mail e senha.".
+- **Se falhar e houver sessão guardada** (num aparelho compartilhado, pode ser de outra pessoa): o app entra por ela e mostra,
+  no topo de toda tela logada (inclusive a de acesso restrito), "Não foi possível entrar direto pelo Meu Ecoo. Você está na
+  conta {e-mail}, que já estava aberta neste aparelho." (sem e-mail, o nome; sem os dois, "…na conta que já estava aberta…"),
+  com **Sair e entrar com a minha conta** (o mesmo "Sair" do app, que leva à tela de login sem o aviso do código) e
+  **Continuar nesta conta** (só esconde o aviso). O aviso vive só em memória: recarregar não o traz de volta. Código em
+  `src/auth/AvisoContaAberta.tsx`, `avisoDaContaAberta` (`loginUnico.ts`) e `AuthProvider`; testes em
+  `src/auth/avisoContaAberta.test.tsx`.
 - **Para um app ter o login único:** acrescentar o id a `MINI_APPS_COM_LOGIN_UNICO` (`backend/src/auth/codigoDeMiniApp.ts`
   do Meu Ecoo) e publicar. O código só vale para o app que o pediu, e quem diz qual é o token próprio dele
   (`PARTNER_AUTH_SERVICE_TOKEN`). Fora da lista, o "Abrir" segue o link normal, sem código.

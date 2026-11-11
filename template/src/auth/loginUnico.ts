@@ -1,4 +1,4 @@
-import { loginComMeuEcoo, type LoginResponse } from './api'
+import { loginComMeuEcoo, type AuthUser, type LoginResponse } from './api'
 
 // Login único (B7 do Meu Ecoo): o "Abrir" do Meu Ecoo abre o app com `?meuecoo_codigo=<código de uso
 // único>`. O código é tirado da URL antes de qualquer chamada de rede (assim ele não fica no histórico
@@ -8,6 +8,15 @@ export const PARAMETRO_MEUECOO = 'meuecoo_codigo'
 
 // O que a tela de login mostra quando o código não valeu (vencido, já usado ou Meu Ecoo fora do ar).
 export const MEUECOO_FALHOU = 'Não foi possível entrar direto pelo Meu Ecoo. Entre com e-mail e senha.'
+
+/** O aviso dentro do app quando o código não valeu e o app entrou pela sessão que já estava aberta
+ *  neste aparelho (pode ser de outra pessoa): diz de quem é a conta. */
+export function avisoDaContaAberta(user: AuthUser | null): string {
+  const conta = user?.email || user?.nome
+  return conta
+    ? `Não foi possível entrar direto pelo Meu Ecoo. Você está na conta ${conta}, que já estava aberta neste aparelho.`
+    : 'Não foi possível entrar direto pelo Meu Ecoo. Você está na conta que já estava aberta neste aparelho.'
+}
 
 /** A URL atual traz um código do Meu Ecoo? Só lê: não mexe na URL. */
 export function temCodigoDoMeuEcoo(): boolean {

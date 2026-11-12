@@ -92,6 +92,11 @@ auth a um app que já existe (ex.: quando ele chega na fase de área de membros)
   (`/api/auth/refresh`, `/api/auth/logout`; só o hash fica no Postgres, tabela `sessoes_de_renovacao`)
   mantém a pessoa logada por até 30 dias. A renovação reconsulta o Meu Ecoo antes de consumir o token.
   Detalhes em [`docs/PLUGAR-LOGIN-VS.md`](docs/PLUGAR-LOGIN-VS.md#sessão-curta-e-renovação).
+- **Avisos de conta** (backend): `POST /api/meuecoo/eventos` recebe do Meu Ecoo a exclusão de conta (anonimiza a
+  cópia e encerra as sessões) e a troca de e-mail (a conta passa ao e-mail novo), com o mesmo token de serviço.
+  Os logins gravam o id da conta no Meu Ecoo (`users.meuecoo_id`). Banco que já tem contas: rode
+  `backend/prisma/antes-do-deploy/20261112_meuecoo_id.sql` antes de publicar. Detalhes em
+  [`docs/PLUGAR-LOGIN-VS.md`](docs/PLUGAR-LOGIN-VS.md#avisos-de-conta-do-meu-ecoo-post-apimeuecooeventos).
 - **Frontend** (`src/auth/`): `AuthProvider`/`useAuth`, `Gatekeeper` (login), `MembershipGate`
   (acesso restrito). Bootstrap via `/api/auth/me` (sem loop de logout).
 - **Regra:** a **fonte de verdade do membership é o VS** (admin / painel manual / Betalabs). O app

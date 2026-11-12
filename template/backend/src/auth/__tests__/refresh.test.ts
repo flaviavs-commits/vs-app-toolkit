@@ -57,6 +57,9 @@ const banco = vi.hoisted(() => {
         ...usuarios.get(where.id)!,
         ...data,
       })),
+      findUnique: vi.fn(async ({ where }: { where: Record<string, unknown> }) =>
+        [...usuarios.values()].find((u) => bate(u, where)) ?? null,
+      ),
     },
     sessaoDeRenovacao,
     $transaction: vi.fn(async (fn: (tx: unknown) => unknown) => fn(prisma)),
@@ -238,6 +241,33 @@ describe('POST /api/auth/refresh', () => {
       data: { nome: 'Ana Maria', isMember: false, memberUntil: new Date('2026-11-01T00:00:00Z') },
     })
     expect((res.body as Sessao).user).toMatchObject({ nome: 'Ana Maria', isMember: false })
+  })
+
+  it('grava o id do Meu Ecoo que a renovação devolve (para os avisos de conta acharem a pessoa)', async () => {
+    const { refreshToken } = await entrar()
+    responder(200, contaDoMeuEcoo({ id: 'me-ana' }))
+
+    const res = await renovar(refreshToken)
+
+    expect(res.statusCode).toBeUndefined()
+    expect(banco.prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { nome: 'Ana', isMember: true, memberUntil: null, meuEcooId: 'me-ana' },
+    })
+  })
+
+  it('id do Meu Ecoo que já é de outra conta não é gravado, e a renovação segue', async () => {
+    const { refreshToken } = await entrar()
+    banco.usuarios.set('u9', { id: 'u9', email: 'ana.antiga@exemplo.com', meuEcooId: 'me-ana' } as never)
+    responder(200, contaDoMeuEcoo({ id: 'me-ana' }))
+
+    const res = await renovar(refreshToken)
+
+    expect(res.statusCode).toBeUndefined()
+    expect(banco.prisma.user.update).toHaveBeenCalledWith({
+      where: { id: 'u1' },
+      data: { nome: 'Ana', isMember: true, memberUntil: null },
+    })
   })
 
   it.each([

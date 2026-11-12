@@ -428,3 +428,55 @@ describe('loginComCodigoDoMeuEcoo (POST /api/auth/meu-ecoo)', () => {
     expect(upsert).not.toHaveBeenCalled()
   })
 })
+
+/**
+ * Id estável da conta no Meu Ecoo (`data.user.id`): todo login que passa pelo Meu Ecoo o grava na conta,
+ * para os avisos de exclusão e troca de e-mail (POST /api/meuecoo/eventos) acharem a conta por ele.
+ */
+describe('id do Meu Ecoo gravado nos logins', () => {
+  const USUARIO = { id: 'u1', email: 'maria@b.com', nome: 'Maria', isMember: true, memberUntil: null }
+  const CONTA = { data: { user: { id: 'me-maria', email: 'Maria@b.com', name: 'Maria', is_member_active: true } } }
+
+  beforeEach(() => {
+    process.env.PARTNER_AUTH_SERVICE_TOKEN = 'token-de-servico'
+    upsert.mockResolvedValue(USUARIO)
+  })
+
+  const fluxos = [
+    ['senha', (req: Request, res: Response) => login(req, res), { email: 'maria@b.com', password: 'x' }],
+    ['código do "Abrir"', (req: Request, res: Response) => loginComCodigoDoMeuEcoo(req, res), { codigo: 'c0d1g0' }],
+    ['Google', (req: Request, res: Response) => loginGoogle(req, res), { idToken: 'tok' }],
+  ] as const
+
+  it.each(fluxos)('%s: grava o id na conta nova e na que já existe', async (_nome, entrar, corpo) => {
+    global.fetch = mockFetchOnce(true, 200, CONTA) as unknown as typeof fetch
+    await entrar(reqDe(corpo), mockRes())
+
+    expect(upsert).toHaveBeenCalledWith({
+      where: { email: 'maria@b.com' },
+      update: expect.objectContaining({ meuEcooId: 'me-maria' }),
+      create: expect.objectContaining({ email: 'maria@b.com', meuEcooId: 'me-maria' }),
+    })
+  })
+
+  it.each(fluxos)('%s: id que já é de outra conta (troca de e-mail cujo aviso ainda não chegou) não é gravado, e o login segue', async (_nome, entrar, corpo) => {
+    global.fetch = mockFetchOnce(true, 200, CONTA) as unknown as typeof fetch
+    findUnique.mockResolvedValueOnce({ email: 'maria.antiga@b.com' })
+    const res = mockRes()
+    await entrar(reqDe(corpo), res)
+
+    const { update, create } = upsert.mock.calls[0][0]
+    expect(update).not.toHaveProperty('meuEcooId')
+    expect(create).not.toHaveProperty('meuEcooId')
+    expect((res.json as ReturnType<typeof vi.fn>).mock.calls[0][0].token).toBeTypeOf('string')
+  })
+
+  it.each(fluxos)('%s: resposta sem id não apaga o id guardado', async (_nome, entrar, corpo) => {
+    global.fetch = mockFetchOnce(true, 200, { data: { user: { email: 'maria@b.com', name: 'Maria' } } }) as unknown as typeof fetch
+    await entrar(reqDe(corpo), mockRes())
+
+    const { update, create } = upsert.mock.calls[0][0]
+    expect(update).not.toHaveProperty('meuEcooId')
+    expect(create).not.toHaveProperty('meuEcooId')
+  })
+})

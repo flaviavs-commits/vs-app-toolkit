@@ -41,6 +41,8 @@ Já vem tudo pronto. Só falta provisionar a infra e preencher as variáveis —
    projeto. Ela traz `src/auth/` (módulo), `src/lib/` (`clientIp.ts`), `src/server.ts` e
    `prisma/schema.prisma` (User base + `SessaoDeRenovacao`). Num app que já tem schema, acrescente o
    model `SessaoDeRenovacao` e a relation `sessoesDeRenovacao` do `User`; a migração é só uma tabela nova.
+   Acrescente também o campo `meuEcooId` do `User` e rode antes `prisma/antes-do-deploy/20261112_meuecoo_id.sql`
+   (ver "Avisos de conta do Meu Ecoo").
 2. **Copiar o módulo frontend**: copie `template/src/auth/` para o `src/` do seu app.
    - Ajuste as chaves do token em `src/auth/api.ts` (`TOKEN_KEY` e `REFRESH_KEY`) para valores únicos do app.
 3. **Envolver o app com o gate**: no seu `App.tsx`, importe `AuthProvider`, `useAuth`, `Gatekeeper`
@@ -216,6 +218,45 @@ O "Abrir" do Meu Ecoo abre o app com um código de uso único na URL e a pessoa 
 - **Para um app ter o login único:** acrescentar o id a `MINI_APPS_COM_LOGIN_UNICO` (`backend/src/auth/codigoDeMiniApp.ts`
   do Meu Ecoo) e publicar. O código só vale para o app que o pediu, e quem diz qual é o token próprio dele
   (`PARTNER_AUTH_SERVICE_TOKEN`). Fora da lista, o "Abrir" segue o link normal, sem código.
+
+---
+
+## Avisos de conta do Meu Ecoo (`POST /api/meuecoo/eventos`)
+
+Quando a pessoa **exclui a conta** ou **troca o e-mail** em Minha conta, o Meu Ecoo avisa o app na hora e reenvia até
+dar certo (contrato completo: `docs/EVENTOS-DE-CONTA.md` do MeuEcoo). O template já recebe o aviso
+(`backend/src/auth/eventosDoMeuEcoo.ts`, registrado no `authRoutes`); nenhuma variável nova no app.
+
+- **Autenticação:** cabeçalho `X-Service-Token` comparado em tempo constante com o `PARTNER_AUTH_SERVICE_TOKEN` (o mesmo
+  valor que o app já manda ao Meu Ecoo). Ausente, diferente ou sem a variável configurada: `403`
+  `{ "error": "Serviço não autorizado.", "code": "SERVICO_NAO_AUTORIZADO" }`, antes de olhar o corpo.
+- **Corpo:** `{ id, tipo, contaId, email, emailNovo?, ocorridoEm }`. `tipo` é `conta_excluida` ou `email_trocado`;
+  `contaId` é texto de 1 a 64 caracteres; `email` (e `emailNovo`, obrigatório na troca) é e-mail válido de até 254
+  caracteres, comparado em minúsculas. Fora disso: `400` `{ "error": "Evento inválido.", "code": "EVENTO_INVALIDO" }`.
+- **Achar a conta:** pelo `meuEcooId` guardado; sem ele, pelo `email` (o antigo, na troca). Conta achada pelo e-mail mas
+  já ligada a **outro** id do Meu Ecoo é de outra pessoa que reusou o e-mail e não é tocada. Nenhuma: `200 { "resultado": "sem_conta" }`.
+- **`conta_excluida`** (numa transação): `email` vira `excluida-<id interno>@contas-excluidas.invalid`, `nome` vira `""` e
+  `meuEcooId` vira `null`; as linhas de `sessoes_de_renovacao` da conta são apagadas. Todo o resto fica (`isMember`,
+  `memberUntil`, datas e os dados do app), sem dono. `200 { "resultado": "anonimizada" }`. O aviso repetido dá `sem_conta`.
+  **App que guardou outro dado de identidade** (foto, id do Google, inscrição de push) precisa limpá-lo em `aplicar`.
+- **`email_trocado`** (numa transação): se **outra** conta já usa o `emailNovo` (a pessoa entrou com ele antes de o aviso
+  chegar), ela vira `substituida-<id interno>@contas-excluidas.invalid` e perde as sessões, sem apagar nada; a conta achada
+  recebe o `emailNovo` e o `meuEcooId`, e perde as sessões. `200 { "resultado": "email_trocado" }`, com `"conflito": true`
+  quando houve a outra conta. Aviso repetido (a conta já está no e-mail novo): `email_trocado` sem mexer em nada, nem na
+  sessão aberta depois.
+- **Log:** `[eventos-de-conta] <id do evento> <tipo> <resultado>`; numa falha, `500` e só o código do erro. Nunca o e-mail.
+- **Id do Meu Ecoo:** todo login que passa pelo Meu Ecoo (senha, código do "Abrir", Google) e a renovação gravam o
+  `data.user.id` em `users.meuecoo_id` (`meuEcooId`, opcional e único). Se outra conta daqui já tem esse id (troca de e-mail
+  cujo aviso ainda não chegou), ele não é gravado e o login segue; resposta sem id não apaga o guardado.
+- **Banco que já tem contas: rode o SQL antes de publicar.** O `start` roda `prisma db push`, que recusa criar sozinho o
+  índice único numa tabela existente ("There might be data loss", conferido em 12/11/2026 num Postgres local) e o deploy
+  cai. Antes de publicar: `psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f prisma/antes-do-deploy/20261112_meuecoo_id.sql`
+  (idempotente; depois dele o `db push` fica em dia). Banco novo não precisa.
+- **No Meu Ecoo:** `EVENTOS_DE_CONTA_URL_<APP>` com a URL completa da rota (ex.: `https://<backend do app>/api/meuecoo/eventos`);
+  sem a variável, o app não recebe avisos. O token é o `PARTNER_LOGIN_<APP>_TOKEN` que já existe.
+- **Limites:** o JWT de acesso já emitido vale até 30 minutos depois do aviso (não há estado para revogá-lo; o refresh já
+  não renova). Se a conta antiga ainda não tinha o id e a pessoa entra com o e-mail novo antes de o aviso chegar, a conta
+  nova ganha o id e é ela que o aviso acha: a antiga fica no e-mail antigo, com os dados, sem ninguém para entrar nela.
 
 ---
 

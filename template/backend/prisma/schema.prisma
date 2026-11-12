@@ -14,6 +14,11 @@ model User {
   email String @unique
   nome  String @default("")
 
+  // Id estável da conta no Meu Ecoo (`data.user.id`), gravado a cada login e renovação. Os avisos de
+  // conta (POST /api/meuecoo/eventos) acham a pessoa por ele antes do e-mail. Num banco que já tem
+  // contas, crie a coluna antes de publicar: prisma/antes-do-deploy/20261112_meuecoo_id.sql.
+  meuEcooId String? @unique @map("meuecoo_id")
+
   // Membership — espelho do status vindo do VS (is_member_active / member_until).
   // FONTE DE VERDADE é o VS (admin / painel manual / Betalabs); aqui é só cache.
   isMember    Boolean   @default(false) @map("is_member")

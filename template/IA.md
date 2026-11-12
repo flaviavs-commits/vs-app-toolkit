@@ -183,3 +183,18 @@ expiração curta e refresh com rotação).
   seguem com o aviso geral. O aviso de conta (sessão guardada) não mudou. Arquivos: `src/auth/loginUnico.ts`
   (`entrarPeloMeuEcoo` devolve `{ falhou: true, mensagem }`) e `src/auth/AuthContext.tsx`; testes em
   `src/auth/avisoContaAberta.test.tsx`. Detalhes em `docs/PLUGAR-LOGIN-VS.md` do toolkit.
+
+- [2026-11-12] AVISOS DE CONTA DO MEU ECOO. `POST /api/meuecoo/eventos` (`backend/src/auth/eventosDoMeuEcoo.ts`, no
+  `authRoutes`) recebe do Meu Ecoo a exclusão de conta e a troca de e-mail (contrato: `docs/EVENTOS-DE-CONTA.md` do
+  MeuEcoo). Autentica pelo `X-Service-Token` igual ao `PARTNER_AUTH_SERVICE_TOKEN` (tempo constante; senão 403
+  `SERVICO_NAO_AUTORIZADO`), valida o corpo (400 `EVENTO_INVALIDO`) e acha a conta pelo id do Meu Ecoo e, sem ele, pelo
+  e-mail (nunca uma conta já ligada a outro id). `conta_excluida`: `email` → `excluida-<id>@contas-excluidas.invalid`,
+  `nome` → `""`, `meuEcooId` → `null` e as sessões de renovação apagadas; o resto fica. `email_trocado`: a conta vai para o
+  e-mail novo, grava o id e perde as sessões; outra conta que já usava o e-mail novo vira
+  `substituida-<id>@contas-excluidas.invalid` e perde as sessões (`conflito: true`). Repetir o aviso não muda nada. O log
+  (`[eventos-de-conta]`) e a resposta não levam e-mail. Coluna nova `users.meuecoo_id` (`meuEcooId`, opcional e única),
+  gravada em todo login e renovação que passa pelo Meu Ecoo (não grava se outra conta já tem o id). **Num banco que já tem
+  contas, rode `backend/prisma/antes-do-deploy/20261112_meuecoo_id.sql` antes de publicar:** o `prisma db push` do `start`
+  recusa criar o índice único sozinho e o deploy cai. Se o app guardar outro dado de identidade (foto, id do Google, push),
+  limpe-o também na exclusão (`aplicar`). Testes: `backend/src/auth/__tests__/eventosDoMeuEcoo.test.ts` e casos novos em
+  `authController.test.ts` e `refresh.test.ts`. Detalhes em `docs/PLUGAR-LOGIN-VS.md` do toolkit.

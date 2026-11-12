@@ -97,6 +97,9 @@ negócio críticas, escreva o teste junto (ver roteiro de verificação manual e
   token, no máximo 30 dias desde o login; só o hash fica na tabela `sessoes_de_renovacao`) o renova em
   `POST /api/auth/refresh`, que antes reconsulta o Meu Ecoo. `POST /api/auth/logout` revoga a sessão.
   Os logins mandam o IP de quem entra ao Meu Ecoo (`X-Client-IP`). Contrato em `PLUGAR-LOGIN-VS.md` (toolkit).
+- **Avisos de conta:** `POST /api/meuecoo/eventos` recebe do Meu Ecoo a exclusão de conta (anonimiza e encerra as
+  sessões) e a troca de e-mail, com o `X-Service-Token` do app. Os logins gravam o id do Meu Ecoo em `users.meuecoo_id`.
+  Num banco que já tem contas, rode `backend/prisma/antes-do-deploy/20261112_meuecoo_id.sql` antes de publicar.
 - **Gate:** o frontend mostra `MembershipGate` para não-membros; o backend bloqueia rotas com
   `requireMember` (403). A **fonte de verdade do membership é o VS** (admin / painel / Betalabs).
 

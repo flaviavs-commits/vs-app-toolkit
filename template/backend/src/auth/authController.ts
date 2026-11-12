@@ -22,6 +22,7 @@ interface Membership {
 interface PartnerFields extends Membership {
   email: string
   nome: string
+  meuEcooId: string | null
   accessToken: string | null
 }
 
@@ -94,6 +95,7 @@ function extractPartnerFields(partnerResponse: any): PartnerFields {
   return {
     email: (partnerUser.email ?? '').toLowerCase(),
     nome: partnerUser.name ?? partnerUser.nome ?? partnerUser.full_name ?? '',
+    meuEcooId: partnerUser.id != null ? String(partnerUser.id) : null,
     isMember: !!partnerUser.is_member_active,
     memberUntil: partnerUser.member_until ? new Date(partnerUser.member_until) : null,
     accessToken,
@@ -134,16 +136,26 @@ async function verifyMembership(
   }
 }
 
+// Id estável da conta no Meu Ecoo, para os avisos de conta (eventosDoMeuEcoo.ts) acharem a pessoa. Só vai
+// para a conta se nenhuma outra daqui já o tem: quem entra com o e-mail novo antes de o aviso de troca chegar
+// cai numa conta nova, e é o aviso que devolve o e-mail novo à conta antiga, com os dados.
+async function idDoMeuEcoo(meuEcooId: string | null, email: string): Promise<{ meuEcooId?: string }> {
+  if (!meuEcooId) return {}
+  const dono = await prisma.user.findUnique({ where: { meuEcooId }, select: { email: true } })
+  return !dono || dono.email === email ? { meuEcooId } : {}
+}
+
 // Depois que o provedor aceitou a pessoa: sincroniza o membership, espelha o usuário
 // e responde com o nosso JWT e o refresh token. Caminho comum aos logins por senha e Google.
 async function abrirSessao(res: Response, partner: PartnerFields, email: string) {
-  const { nome, isMember, memberUntil, accessToken } = partner
+  const { nome, isMember, memberUntil, accessToken, meuEcooId } = partner
   const membership = await verifyMembership(accessToken, { isMember, memberUntil })
+  const id = await idDoMeuEcoo(meuEcooId, email)
 
   const user = await prisma.user.upsert({
     where: { email },
-    update: { nome, ...membership },
-    create: { email, nome, ...membership },
+    update: { nome, ...membership, ...id },
+    create: { email, nome, ...membership, ...id },
   })
 
   const token = signToken(user.id, user.email)
@@ -334,8 +346,9 @@ export async function refresh(req: Request, res: Response) {
       return res.status(status).json(body)
     }
 
-    const { nome, isMember, memberUntil } = renovacao.partner
-    const user = await prisma.user.update({ where: { id: sessao.userId }, data: { nome, isMember, memberUntil } })
+    const { nome, isMember, memberUntil, meuEcooId } = renovacao.partner
+    const id = await idDoMeuEcoo(meuEcooId, sessao.user.email)
+    const user = await prisma.user.update({ where: { id: sessao.userId }, data: { nome, isMember, memberUntil, ...id } })
 
     const refreshToken = await rotacionar(sessao)
     if (!refreshToken) {

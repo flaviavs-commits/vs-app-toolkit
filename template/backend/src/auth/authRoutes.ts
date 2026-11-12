@@ -1,6 +1,7 @@
 import { Router } from 'express'
 import { login, loginGoogle, loginComCodigoDoMeuEcoo, refresh, logout, getMe } from './authController.js'
 import { requireAuth } from './requireAuth.js'
+import { receberEventoDoMeuEcoo } from './eventosDoMeuEcoo.js'
 
 // ── Rotas de autenticação ──────────────────────────────────────────────────────
 // Monte com: app.use(authRoutes) — registra:
@@ -10,6 +11,7 @@ import { requireAuth } from './requireAuth.js'
 //   POST /api/auth/refresh (público — troca o refresh token por um par novo; ver refreshTokens.ts)
 //   POST /api/auth/logout  (público — revoga a família do refresh token; sempre 204)
 //   GET  /api/auth/me       (autenticado — restaura sessão; não exige membership)
+//   POST /api/meuecoo/eventos (só o Meu Ecoo, com X-Service-Token — exclusão de conta e troca de e-mail)
 const authRoutes = Router()
 
 authRoutes.post('/api/auth/login', login)
@@ -18,6 +20,7 @@ authRoutes.post('/api/auth/meu-ecoo', loginComCodigoDoMeuEcoo)
 authRoutes.post('/api/auth/refresh', refresh)
 authRoutes.post('/api/auth/logout', logout)
 authRoutes.get('/api/auth/me', requireAuth, getMe)
+authRoutes.post('/api/meuecoo/eventos', receberEventoDoMeuEcoo)
 
 export default authRoutes
 

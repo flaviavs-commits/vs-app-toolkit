@@ -198,3 +198,10 @@ expiração curta e refresh com rotação).
   recusa criar o índice único sozinho e o deploy cai. Se o app guardar outro dado de identidade (foto, id do Google, push),
   limpe-o também na exclusão (`aplicar`). Testes: `backend/src/auth/__tests__/eventosDoMeuEcoo.test.ts` e casos novos em
   `authController.test.ts` e `refresh.test.ts`. Detalhes em `docs/PLUGAR-LOGIN-VS.md` do toolkit.
+
+- [2026-11-12] TROCA DE E-MAIL ACHA A CONTA PELO E-MAIL ANTIGO PRIMEIRO (revisão do contrato no mesmo dia). Se a conta
+  antiga ainda não tinha o id do Meu Ecoo e a pessoa entrou com o e-mail novo antes do aviso, o login deu o id à conta
+  nova, vazia, e a busca pelo id a achava: os dados ficavam presos no e-mail antigo. Agora `email_trocado` procura pelo
+  e-mail antigo e depois pelo id (`conta_excluida` segue id e depois e-mail; nos dois, a busca pelo e-mail ignora conta
+  ligada a outro id), e no conflito a outra conta também perde o `meuEcooId` antes de a antiga recebê-lo (índice único).
+  Arquivo: `backend/src/auth/eventosDoMeuEcoo.ts`; testes em `eventosDoMeuEcoo.test.ts`.

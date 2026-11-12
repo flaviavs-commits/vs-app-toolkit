@@ -291,10 +291,13 @@ describe('achar a conta', () => {
     expect(linha('u2').email).toBe('ana@exemplo.com')
   })
 
-  it('pelo e-mail, não pega conta que já é de outro id do Meu Ecoo (outra pessoa reusou o e-mail)', async () => {
+  it.each([
+    ['conta_excluida', exclusao()],
+    ['email_trocado', troca()],
+  ])('%s: pelo e-mail, não pega conta que já é de outro id do Meu Ecoo (outra pessoa reusou o e-mail)', async (_tipo, corpo) => {
     conta('u1', 'ana@exemplo.com', { meuEcooId: 'me-outra-ana' })
 
-    const res = await avisar(exclusao())
+    const res = await avisar(corpo)
 
     expect(res.body).toEqual({ resultado: 'sem_conta' })
     expect(linha('u1')).toMatchObject({ email: 'ana@exemplo.com', meuEcooId: 'me-outra-ana' })
@@ -355,6 +358,31 @@ describe('email_trocado', () => {
     expect(banco.usuarios).toHaveLength(2)
     expect(sessoesDe('u1')).toEqual([])
     expect(sessoesDe('u2')).toEqual([])
+  })
+
+  it('conta nova com o id + conta antiga sem id: acha a antiga pelo e-mail antigo, e ela fica com o e-mail novo e o id', async () => {
+    // A antiga não voltou desde que o app passou a guardar o id; a pessoa entrou com o e-mail novo antes do aviso,
+    // e o login deu o id à conta nova, vazia.
+    conta('u1', 'ana@exemplo.com', { nome: 'Ana (com os dados)' })
+    conta('u2', 'ana.nova@exemplo.com', { meuEcooId: 'me-ana', nome: 'Ana (conta nova)' })
+    sessao('s1', 'u1')
+    sessao('s2', 'u2')
+
+    const res = await avisar(troca())
+
+    expect(res.body).toEqual({ resultado: 'email_trocado', conflito: true })
+    expect(linha('u1')).toMatchObject({ email: 'ana.nova@exemplo.com', meuEcooId: 'me-ana', nome: 'Ana (com os dados)' })
+    expect(linha('u2')).toMatchObject({
+      email: 'substituida-u2@contas-excluidas.invalid',
+      meuEcooId: null,
+      nome: 'Ana (conta nova)',
+    })
+    expect(sessoesDe('u1')).toEqual([])
+    expect(sessoesDe('u2')).toEqual([])
+
+    // Repetir o aviso não desfaz nada.
+    expect((await avisar(troca())).body).toEqual({ resultado: 'email_trocado' })
+    expect(linha('u1')).toMatchObject({ email: 'ana.nova@exemplo.com', meuEcooId: 'me-ana' })
   })
 
   it('repetir o aviso não estraga nada: a conta segue no e-mail novo e não perde a sessão aberta depois', async () => {

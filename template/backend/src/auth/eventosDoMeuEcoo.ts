@@ -43,17 +43,21 @@ function lerEvento(corpo: any): Evento | null {
   return null
 }
 
-// Primeiro pelo id do Meu Ecoo; sem ele, pelo e-mail (o antigo, na troca). Conta achada pelo e-mail mas já
-// ligada a outro id do Meu Ecoo é de outra pessoa que reusou o e-mail, e não é tocada.
-async function acharConta(db: Db, contaId: string, email: string) {
-  const porId = await db.user.findUnique({ where: { meuEcooId: contaId } })
-  if (porId) return porId
-  const porEmail = await db.user.findUnique({ where: { email } })
-  return porEmail && !porEmail.meuEcooId ? porEmail : null
+// Na exclusão, primeiro pelo id do Meu Ecoo e depois pelo e-mail. Na troca, primeiro pelo e-mail antigo: se a
+// conta antiga ainda não tinha o id e a pessoa entrou com o e-mail novo antes do aviso, quem tem o id é a conta
+// nova, vazia, e os dados ficariam presos no e-mail antigo. Conta achada pelo e-mail mas ligada a outro id do
+// Meu Ecoo é de outra pessoa que reusou o e-mail, e não é tocada.
+async function acharConta(db: Db, evento: Evento) {
+  const porId = () => db.user.findUnique({ where: { meuEcooId: evento.contaId } })
+  const porEmail = async () => {
+    const conta = await db.user.findUnique({ where: { email: evento.email } })
+    return conta && (!conta.meuEcooId || conta.meuEcooId === evento.contaId) ? conta : null
+  }
+  return evento.tipo === 'email_trocado' ? ((await porEmail()) ?? porId()) : ((await porId()) ?? porEmail())
 }
 
 async function aplicar(db: Db, evento: Evento): Promise<{ resultado: string; conflito?: true }> {
-  const conta = await acharConta(db, evento.contaId, evento.email)
+  const conta = await acharConta(db, evento)
   if (!conta) return { resultado: 'sem_conta' }
 
   if (evento.tipo === 'conta_excluida') {
@@ -70,16 +74,16 @@ async function aplicar(db: Db, evento: Evento): Promise<{ resultado: string; con
   if (conta.email === evento.emailNovo) return { resultado: 'email_trocado' }
 
   // A pessoa entrou com o e-mail novo antes de o aviso chegar e ganhou outra conta: a antiga, com os dados,
-  // fica com o e-mail; a outra sai do caminho sem perder nada além das sessões.
+  // fica com o e-mail e o id; a outra sai do caminho (antes, pelos índices únicos) sem perder os dados.
   const outra = await db.user.findUnique({ where: { email: evento.emailNovo } })
   if (outra) {
     await db.user.update({
       where: { id: outra.id },
-      data: { email: `substituida-${outra.id}@contas-excluidas.invalid` },
+      data: { email: `substituida-${outra.id}@contas-excluidas.invalid`, meuEcooId: null },
     })
     await db.sessaoDeRenovacao.deleteMany({ where: { userId: outra.id } })
   }
-  // Achada pelo id, já o tem; achada pelo e-mail, não tinha id nenhum (acharConta).
+  // A conta achada não tem id ou já tem este (acharConta).
   await db.user.update({ where: { id: conta.id }, data: { email: evento.emailNovo, meuEcooId: evento.contaId } })
   await db.sessaoDeRenovacao.deleteMany({ where: { userId: conta.id } })
   return outra ? { resultado: 'email_trocado', conflito: true } : { resultado: 'email_trocado' }

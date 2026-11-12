@@ -233,15 +233,17 @@ dar certo (contrato completo: `docs/EVENTOS-DE-CONTA.md` do MeuEcoo). O template
 - **Corpo:** `{ id, tipo, contaId, email, emailNovo?, ocorridoEm }`. `tipo` é `conta_excluida` ou `email_trocado`;
   `contaId` é texto de 1 a 64 caracteres; `email` (e `emailNovo`, obrigatório na troca) é e-mail válido de até 254
   caracteres, comparado em minúsculas. Fora disso: `400` `{ "error": "Evento inválido.", "code": "EVENTO_INVALIDO" }`.
-- **Achar a conta:** pelo `meuEcooId` guardado; sem ele, pelo `email` (o antigo, na troca). Conta achada pelo e-mail mas
-  já ligada a **outro** id do Meu Ecoo é de outra pessoa que reusou o e-mail e não é tocada. Nenhuma: `200 { "resultado": "sem_conta" }`.
+- **Achar a conta:** na exclusão, pelo `meuEcooId` guardado e depois pelo `email`; na troca, **primeiro pelo e-mail
+  antigo** e depois pelo id (revisão de 12/11: se a conta antiga ainda não tinha o id e a pessoa entrou com o e-mail novo
+  antes do aviso, quem tem o id é a conta nova, vazia). Conta achada pelo e-mail mas já ligada a **outro** id do Meu Ecoo é
+  de outra pessoa que reusou o e-mail e não é tocada. Nenhuma: `200 { "resultado": "sem_conta" }`.
 - **`conta_excluida`** (numa transação): `email` vira `excluida-<id interno>@contas-excluidas.invalid`, `nome` vira `""` e
   `meuEcooId` vira `null`; as linhas de `sessoes_de_renovacao` da conta são apagadas. Todo o resto fica (`isMember`,
   `memberUntil`, datas e os dados do app), sem dono. `200 { "resultado": "anonimizada" }`. O aviso repetido dá `sem_conta`.
   **App que guardou outro dado de identidade** (foto, id do Google, inscrição de push) precisa limpá-lo em `aplicar`.
 - **`email_trocado`** (numa transação): se **outra** conta já usa o `emailNovo` (a pessoa entrou com ele antes de o aviso
-  chegar), ela vira `substituida-<id interno>@contas-excluidas.invalid` e perde as sessões, sem apagar nada; a conta achada
-  recebe o `emailNovo` e o `meuEcooId`, e perde as sessões. `200 { "resultado": "email_trocado" }`, com `"conflito": true`
+  chegar), ela vira `substituida-<id interno>@contas-excluidas.invalid`, perde as sessões e o `meuEcooId`, sem apagar nada;
+  a conta achada recebe o `emailNovo` e o `meuEcooId`, e perde as sessões. `200 { "resultado": "email_trocado" }`, com `"conflito": true`
   quando houve a outra conta. Aviso repetido (a conta já está no e-mail novo): `email_trocado` sem mexer em nada, nem na
   sessão aberta depois.
 - **Log:** `[eventos-de-conta] <id do evento> <tipo> <resultado>`; numa falha, `500` e só o código do erro. Nunca o e-mail.
@@ -254,9 +256,8 @@ dar certo (contrato completo: `docs/EVENTOS-DE-CONTA.md` do MeuEcoo). O template
   (idempotente; depois dele o `db push` fica em dia). Banco novo não precisa.
 - **No Meu Ecoo:** `EVENTOS_DE_CONTA_URL_<APP>` com a URL completa da rota (ex.: `https://<backend do app>/api/meuecoo/eventos`);
   sem a variável, o app não recebe avisos. O token é o `PARTNER_LOGIN_<APP>_TOKEN` que já existe.
-- **Limites:** o JWT de acesso já emitido vale até 30 minutos depois do aviso (não há estado para revogá-lo; o refresh já
-  não renova). Se a conta antiga ainda não tinha o id e a pessoa entra com o e-mail novo antes de o aviso chegar, a conta
-  nova ganha o id e é ela que o aviso acha: a antiga fica no e-mail antigo, com os dados, sem ninguém para entrar nela.
+- **Limite:** o JWT de acesso já emitido vale até 30 minutos depois do aviso (não há estado para revogá-lo; o refresh já
+  não renova).
 
 ---
 
